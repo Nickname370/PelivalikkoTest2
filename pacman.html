@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pac-Man</title>
+<style>
+body{
+    margin:0;
+    background:black;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    overflow:hidden;
+}
+canvas{
+    border:3px solid yellow;
+}
+</style>
+</head>
+<body>
+
+<a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+  <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+
+<canvas id="game" width="600" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const tileSize = 30;
+
+const map = [
+"####################",
+"#............##....#",
+"#.####.#####.##.####",
+"#..................#",
+"#.####.#.#######.#.#",
+"#......#....#....#.#",
+"######.###.##.####.#",
+"#...........P......#",
+"#.####.#########.###",
+"#..................#",
+"#.####.#.######.#.##",
+"#......#...##...#..#",
+"#.########.##.######",
+"#........#.#.......#",
+"#.###.##.....#####.#",
+"#...#.####.#...#####",
+"#.#.#....#.#.#.....#",
+"#.#...##.#...#####.#",
+"#...####...#.......#",
+"####################"
+];
+
+let pacman = {x:0,y:0};
+let score = 0;
+let gameOver = false;
+
+let moveTimer = 0;
+const moveDelay = 8;
+
+let ghostTimer = 0;
+const ghostDelay = 30;
+
+let dots = [];
+
+const ghosts = [
+    {x:2,y:2,color:"red"},
+    {x:25,y:2,color:"pink"},
+    {x:2,y:12,color:"cyan"},
+    {x:25,y:12,color:"orange"}
+];
+
+for(let y=0; y<map.length; y++){
+    for(let x=0; x<map[y].length; x++){
+
+        const c = map[y][x];
+
+        if(c === "P"){
+            pacman.x = x;
+            pacman.y = y;
+        }
+
+        if(c === "."){
+            dots.push({x,y});
+        }
+    }
+}
+
+const keys = {};
+
+document.addEventListener("keydown", e=>{
+    keys[e.key] = true;
+});
+
+document.addEventListener("keyup", e=>{
+    keys[e.key] = false;
+});
+
+function wall(x,y){
+    if(y < 0 || y >= map.length) return true;
+    if(x < 0 || x >= map[y].length) return true;
+    return map[y][x] === "#";
+}
+
+function moveGhosts(){
+
+    for(const ghost of ghosts){
+
+        const dirs = [
+            {x:-1,y:0},
+            {x:1,y:0},
+            {x:0,y:-1},
+            {x:0,y:1}
+        ];
+
+        const possible = dirs.filter(dir=>{
+            return !wall(
+                ghost.x + dir.x,
+                ghost.y + dir.y
+            );
+        });
+
+        if(possible.length > 0){
+
+            const dir =
+                possible[Math.floor(Math.random()*possible.length)];
+
+            ghost.x += dir.x;
+            ghost.y += dir.y;
+        }
+
+        if(
+            ghost.x === pacman.x &&
+            ghost.y === pacman.y
+        ){
+            gameOver = true;
+        }
+    }
+}
+
+function update(){
+
+    if(gameOver) return;
+
+    moveTimer++;
+
+    if(moveTimer >= moveDelay){
+
+        moveTimer = 0;
+
+        let nx = pacman.x;
+        let ny = pacman.y;
+
+        if(keys["a"]) nx--;
+        else if(keys["d"]) nx++;
+        else if(keys["w"]) ny--;
+        else if(keys["s"]) ny++;
+
+        if(!wall(nx,ny)){
+            pacman.x = nx;
+            pacman.y = ny;
+        }
+
+        dots = dots.filter(dot=>{
+
+            if(
+                dot.x === pacman.x &&
+                dot.y === pacman.y
+            ){
+                score += 10;
+                return false;
+            }
+
+            return true;
+        });
+
+        for(const ghost of ghosts){
+
+            if(
+                ghost.x === pacman.x &&
+                ghost.y === pacman.y
+            ){
+                gameOver = true;
+            }
+        }
+    }
+
+    ghostTimer++;
+
+    if(ghostTimer >= ghostDelay){
+
+        ghostTimer = 0;
+        moveGhosts();
+    }
+}
+
+function draw(){
+
+    ctx.fillStyle = "black";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    for(let y=0; y<map.length; y++){
+        for(let x=0; x<map[y].length; x++){
+
+            if(map[y][x] === "#"){
+
+                ctx.fillStyle = "blue";
+                ctx.fillRect(
+                    x*tileSize,
+                    y*tileSize,
+                    tileSize,
+                    tileSize
+                );
+            }
+        }
+    }
+
+    ctx.fillStyle = "white";
+
+    for(const dot of dots){
+
+        ctx.beginPath();
+        ctx.arc(
+            dot.x*tileSize + tileSize/2,
+            dot.y*tileSize + tileSize/2,
+            4,
+            0,
+            Math.PI*2
+        );
+        ctx.fill();
+    }
+
+    for(const ghost of ghosts){
+
+        ctx.fillStyle = ghost.color;
+
+        ctx.beginPath();
+        ctx.arc(
+            ghost.x*tileSize + tileSize/2,
+            ghost.y*tileSize + tileSize/2,
+            tileSize/2 - 2,
+            Math.PI,
+            0
+        );
+        ctx.fill();
+
+        ctx.fillRect(
+            ghost.x*tileSize + 2,
+            ghost.y*tileSize + tileSize/2,
+            tileSize - 4,
+            tileSize/2 - 2
+        );
+    }
+
+    ctx.fillStyle = "yellow";
+
+    ctx.beginPath();
+    ctx.arc(
+        pacman.x*tileSize + tileSize/2,
+        pacman.y*tileSize + tileSize/2,
+        tileSize/2 - 2,
+        0.2*Math.PI,
+        1.8*Math.PI
+    );
+    ctx.lineTo(
+        pacman.x*tileSize + tileSize/2,
+        pacman.y*tileSize + tileSize/2
+    );
+    ctx.fill();
+
+    ctx.fillStyle = "white";
+    ctx.font = "24px Arial";
+    ctx.fillText("Pisteet: " + score, 10, 25);
+
+    if(dots.length === 0){
+
+        ctx.fillStyle = "lime";
+        ctx.font = "40px Arial";
+        ctx.fillText("VOITIT!", 220, 300);
+    }
+
+    if(gameOver){
+
+        ctx.fillStyle = "red";
+        ctx.font = "60px Arial";
+        ctx.fillText(
+            "GAME OVER",
+            100,
+            300
+        );
+    }
+}
+
+function gameLoop(){
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>

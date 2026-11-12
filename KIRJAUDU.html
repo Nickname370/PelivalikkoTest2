@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<title>Kirjaudu sisään</title>
+
+<style>
+body {
+    font-family: Arial;
+    text-align: center;
+    background: #f0f0f0;
+}
+
+.box {
+    background: white;
+    padding: 20px;
+    margin: 20px auto;
+    width: 360px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+input {
+    padding: 8px;
+    width: 90%;
+}
+
+button {
+    margin: 5px;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    border: none;
+    background: #3498db;
+    color: white;
+}
+
+button:hover {
+    background: #2980b9;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.cell {
+    width: 90px;
+    height: 90px;
+    background: #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 25px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.selected {
+    background: #2ecc71;
+}
+
+/* POPUP */
+#popupAd {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Kirjaudu sisään</h1>
+
+<a href="https://nickname370.github.io/AloitusTest11/valikko3.html"><button>⬅️ Takaisin</button></a>
+
+<div class="box" id="register">
+    <h2>Luo käyttäjä</h2>
+    <input id="newUser" placeholder="Käyttäjänimi"><br><br>
+    <input id="newPass" placeholder="Salasana"><br><br>
+    <button onclick="register()">Rekisteröidy</button>
+</div>
+
+<div class="box" id="login" style="display:none;">
+    <h2>Kirjaudu sisään</h2>
+    <input id="loginUser" placeholder="Käyttäjänimi"><br><br>
+    <input id="loginPass" placeholder="Salasana"><br><br>
+    <button onclick="login()">Kirjaudu</button>
+</div>
+
+<div class="box" id="game" style="display:none;">
+    <h2>Oletko robotti?</h2>
+    <div id="buttons"></div>
+</div>
+
+<div class="box" id="captcha1" style="display:none;">
+    <h2>Valitse liikennevalot 🚦</h2>
+    <div class="grid" id="grid1"></div>
+    <button onclick="checkCaptcha1()">Tarkista</button>
+</div>
+
+<div class="box" id="captcha2" style="display:none;">
+    <h2>Valitse autot 🚗</h2>
+    <div class="grid" id="grid2"></div>
+    <button onclick="checkCaptcha2()">Tarkista</button>
+</div>
+
+<div class="box" id="captcha3" style="display:none;">
+    <h2>Valitse bussit 🚌</h2>
+    <div class="grid" id="grid3"></div>
+    <button onclick="checkCaptcha3()">Tarkista</button>
+</div>
+
+<div class="box" id="captcha4" style="display:none;">
+    <h2>Valitse puut 🌳</h2>
+    <div class="grid" id="grid4"></div>
+    <button onclick="checkCaptcha4()">Tarkista</button>
+</div>
+
+<div class="box" id="win" style="display:none;">
+    <h2>Kirjautuminen onnistui!</h2>
+    <p>Et ole robotti 😄</p>
+	<a href="https://nickname370.github.io/AloitusTest11/valikko3.html"><button>⬅️Tästä takaisin pelivalikkoon.</button></a>
+</div>
+
+<script>
+let savedUser="", savedPass="";
+
+let correct1=[], correct2=[], correct3=[], correct4=[];
+
+// 🔐 rekisteröinti (VAATII KAIKKI KENTÄT)
+function register(){
+    let u=document.getElementById("newUser").value;
+    let p=document.getElementById("newPass").value;
+
+    if(!u || !p){
+        alert("Täytä kaikki kentät!");
+        return;
+    }
+
+    savedUser=u;
+    savedPass=p;
+
+    document.getElementById("register").style.display="none";
+    document.getElementById("login").style.display="block";
+}
+
+// login
+function login(){
+    let u=document.getElementById("loginUser").value;
+    let p=document.getElementById("loginPass").value;
+
+    if(u===savedUser && p===savedPass){
+        document.getElementById("login").style.display="none";
+        startGame();
+    } else {
+        alert("Väärä kirjautuminen");
+    }
+}
+
+// 🧠 isot vaihtoehdot
+let options = [
+"Olen robotti",
+"En en ole robotti",
+"Kyllä robotti",
+"100% robotti",
+"Robotti täällä",
+"Olen rautavesimeloni",
+"Olen pesukone",
+"En ole ihminen",
+"Beep Boop",
+"Kyllä Kyllä",
+"Olen ChatGPT",
+"Kyllä minä olen robotti",
+"Olen leivänpaahdin",
+"Olen jääkaappi",
+"Olen mikrouuni",
+"Olen tekoäly",
+"Olen botti",
+"Olen NPC",
+"En ole robotti"
+];
+
+// 🎮 peli
+function startGame(){
+    document.getElementById("game").style.display="block";
+    let box=document.getElementById("buttons");
+    box.innerHTML="";
+
+    for(let i=0;i<options.length;i++){
+        let b=document.createElement("button");
+        b.innerText = options[i];
+
+        b.onclick=()=>{
+            if(b.innerText === "En ole robotti"){
+                document.getElementById("game").style.display="none";
+                startCaptcha1();
+            } else {
+                alert("Väärä valinta!");
+                startGame();
+            }
+        };
+
+        box.appendChild(b);
+    }
+}
+
+// CAPTCHA 1
+function startCaptcha1(){
+    document.getElementById("captcha1").style.display="block";
+    createGrid("grid1", "🚦", correct1);
+}
+
+function checkCaptcha1(){
+    if(checkGrid("grid1", correct1)){
+        document.getElementById("captcha1").style.display="none";
+        startCaptcha2();
+    } else startCaptcha1();
+}
+
+// CAPTCHA 2
+function startCaptcha2(){
+    document.getElementById("captcha2").style.display="block";
+    createGrid("grid2", "🚗", correct2);
+}
+
+function checkCaptcha2(){
+    if(checkGrid("grid2", correct2)){
+        document.getElementById("captcha2").style.display="none";
+        startCaptcha3();
+    } else startCaptcha2();
+}
+
+// CAPTCHA 3
+function startCaptcha3(){
+    document.getElementById("captcha3").style.display="block";
+    createGrid("grid3", "🚌", correct3);
+}
+
+function checkCaptcha3(){
+    if(checkGrid("grid3", correct3)){
+        document.getElementById("captcha3").style.display="none";
+        startCaptcha4();
+    } else startCaptcha3();
+}
+
+// CAPTCHA 4
+function startCaptcha4(){
+    document.getElementById("captcha4").style.display="block";
+    createGrid("grid4", "🌳", correct4);
+}
+
+function checkCaptcha4(){
+    if(checkGrid("grid4", correct4)){
+        document.getElementById("captcha4").style.display="none";
+        document.getElementById("win").style.display="block";
+    } else startCaptcha4();
+}
+
+// 🔧 generointi
+function createGrid(id, emoji, correctArr){
+    let g=document.getElementById(id);
+    g.innerHTML="";
+    correctArr.length=0;
+
+    for(let i=0;i<9;i++){
+        let c=document.createElement("div");
+        c.className="cell";
+
+        let ok=Math.random()<0.4;
+
+        if(ok){
+            c.innerText=emoji;
+            correctArr.push(i);
+        } else {
+            let fake=["🚗","🚦","🚌","🌳","🏠","🐶","🚲"];
+            c.innerText=fake[Math.floor(Math.random()*fake.length)];
+        }
+
+        c.dataset.index=i;
+        c.onclick=()=>c.classList.toggle("selected");
+        g.appendChild(c);
+    }
+}
+
+// 🔍 tarkistus
+function checkGrid(id, correctArr){
+    let selected=[...document.querySelectorAll(`#${id} .selected`)]
+        .map(x=>+x.dataset.index);
+
+    return selected.length===correctArr.length &&
+           selected.every(i=>correctArr.includes(i));
+}
+</script>
+
+</body>
+</html>

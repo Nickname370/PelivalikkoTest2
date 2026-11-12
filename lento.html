@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8" />
+<title>Lentosimulaattori</title>
+
+<style>
+body { margin:0; overflow:hidden; }
+#hud {
+  position:absolute;
+  top:10px;
+  left:10px;
+  color:white;
+  background:rgba(0,0,0,0.5);
+  padding:10px;
+  font-family:Arial;
+  border-radius:8px;
+  z-index:10;
+}
+</style>
+</head>
+<body>
+<div id="gameOverScreen" style="
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.9);
+display:none;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+z-index:9999;
+color:white;
+font-family:Arial;
+">
+
+<h1 style="
+font-size:70px;
+margin-bottom:20px;
+color:red;
+">
+💥 GAME OVER
+</h1>
+
+<p id="gameOverText" style="
+font-size:28px;
+margin-bottom:30px;
+">
+Törmäsit!
+</p>
+
+<button onclick="location.reload()" style="
+padding:15px 30px;
+font-size:24px;
+border:none;
+border-radius:10px;
+background:#ff3333;
+color:white;
+cursor:pointer;
+">
+🔄 Pelaa uudestaan
+</button>
+  <a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+    <button class="valikko" style="transition: all 0.3s ease; position:absolute; top:550px; right:520px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin Pelivalikkoon</button>
+  </a>
+
+</div>
+
+<div id="hud">
+WASD = ohjaus<br>
+Q/E = kallistus<br>
+R/F = ylös/alas
+</div>
+
+  <a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+    <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+  </a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+let scene = new THREE.Scene();
+
+// 🌤️ taivas
+let skyCanvas = document.createElement("canvas");
+skyCanvas.width = 2;
+skyCanvas.height = 512;
+
+let ctx = skyCanvas.getContext("2d");
+let grad = ctx.createLinearGradient(0,0,0,512);
+grad.addColorStop(0, "#7ec8ff");
+grad.addColorStop(1, "#1e7bff");
+
+ctx.fillStyle = grad;
+ctx.fillRect(0,0,2,512);
+
+scene.background = new THREE.CanvasTexture(skyCanvas);
+scene.fog = new THREE.Fog(0x1e7bff, 200, 1200);
+
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
+let renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// valo
+let light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(50,100,50);
+scene.add(light);
+
+// 🌍 maa
+let ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(2000,2000),
+  new THREE.MeshLambertMaterial({color:0x228B22})
+);
+ground.rotation.x = -Math.PI/2;
+scene.add(ground);
+
+// ✈️ lentokone
+let plane = new THREE.Mesh(
+  new THREE.BoxGeometry(2,0.5,5),
+  new THREE.MeshLambertMaterial({color:0xff0000})
+);
+plane.position.y = 60;
+scene.add(plane);
+
+// rakennukset
+let buildings = [];
+
+function createBuilding(x,z){
+    let h = 10 + Math.random()*120;
+
+    let b = new THREE.Mesh(
+        new THREE.BoxGeometry(12, h, 12),
+        new THREE.MeshLambertMaterial({
+            color: new THREE.Color(`hsl(${Math.random()*360},60%,55%)`)
+        })
+    );
+
+    b.position.set(x, h/2, z);
+    scene.add(b);
+    buildings.push(b);
+}
+
+// city
+for(let x=-500;x<=500;x+=50){
+  for(let z=-500;z<=500;z+=50){
+    if(Math.random() > 0.65){
+      createBuilding(x,z);
+    }
+  }
+}
+
+// input
+let keys = {};
+document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+let speed = 0.9;
+let gameOver = false;
+
+// BOXIT
+let planeBox = new THREE.Box3();
+let groundBox = new THREE.Box3().setFromObject(ground);
+let buildingBoxes = buildings.map(b => new THREE.Box3().setFromObject(b));
+
+function updatePlane(){
+    if(gameOver) return;
+
+    plane.translateZ(-speed);
+
+    if(keys["w"]) plane.rotation.x -= 0.02;
+    if(keys["s"]) plane.rotation.x += 0.02;
+
+    if(keys["a"]) plane.rotation.y += 0.02;
+    if(keys["d"]) plane.rotation.y -= 0.02;
+
+    if(keys["q"]) plane.rotation.z += 0.02;
+    if(keys["e"]) plane.rotation.z -= 0.02;
+
+    if(keys["r"]) plane.position.y += 0.4;
+    if(keys["f"]) plane.position.y -= 0.4;
+
+    // päivitä box
+    planeBox.setFromObject(plane);
+
+    // 🌍 törmäys maahan
+    if(plane.position.y < 2){
+        endGame("Törmäsit maahan!");
+    }
+
+    // 🏢 rakennukset
+    for(let b of buildings){
+        let box = new THREE.Box3().setFromObject(b);
+
+        if(planeBox.intersectsBox(box)){
+            endGame("Törmäsit rakennukseen!");
+        }
+    }
+}
+
+function endGame(msg){
+
+    if(gameOver) return;
+
+    gameOver = true;
+
+    document.getElementById(
+        "gameOverText"
+    ).innerText = msg;
+
+    document.getElementById(
+        "gameOverScreen"
+    ).style.display = "flex";
+}
+
+function updateCamera(){
+    let offset = new THREE.Vector3(0,6,14);
+    let camPos = offset.applyMatrix4(plane.matrixWorld);
+
+    camera.position.lerp(camPos, 0.08);
+    camera.lookAt(plane.position);
+}
+
+function animate(){
+    requestAnimationFrame(animate);
+
+    updatePlane();
+    updateCamera();
+
+    renderer.render(scene, camera);
+}
+
+animate();
+
+window.addEventListener("resize", ()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<title>Noppakisa</title>
+<style>
+body{
+    font-family:Arial,sans-serif;
+    text-align:center;
+    background:#f0f0f0;
+}
+
+#board{
+    position:relative;
+    width:700px;
+    height:700px;
+    margin:20px auto;
+    background:white;
+    border:3px solid black;
+    border-radius:50%;
+}
+
+.space{
+    position:absolute;
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    border:2px solid #333;
+    background:white;
+    transform:translate(-50%,-50%);
+}
+
+.pawn{
+    position:absolute;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    transform:translate(-50%,-50%);
+}
+
+#controls{
+    margin:20px;
+}
+
+button{
+    font-size:20px;
+    padding:10px 20px;
+}
+
+#log{
+    width:700px;
+    height:180px;
+    margin:auto;
+    overflow-y:auto;
+    background:white;
+    border:1px solid black;
+    text-align:left;
+    padding:10px;
+}
+</style>
+</head>
+<body>
+
+<a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+  <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+
+<h1>Noppakisa</h1>
+
+<div id="controls">
+    <button id="rollBtn">Heitä noppaa</button>
+    <h2 id="status">Sinun vuorosi</h2>
+</div>
+
+<div id="board"></div>
+
+<div id="log"></div>
+
+<script>
+const board = document.getElementById("board");
+const statusText = document.getElementById("status");
+const log = document.getElementById("log");
+const rollBtn = document.getElementById("rollBtn");
+
+const spaces = [];
+const TOTAL_SPACES = 40;
+const radius = 280;
+const center = 350;
+
+for(let i=0;i<TOTAL_SPACES;i++){
+    const angle = (i/TOTAL_SPACES)*Math.PI*2-Math.PI/2;
+    const x = center + Math.cos(angle)*radius;
+    const y = center + Math.sin(angle)*radius;
+
+    const div = document.createElement("div");
+    div.className="space";
+    div.style.left=x+"px";
+    div.style.top=y+"px";
+    board.appendChild(div);
+
+    spaces.push({x,y});
+}
+
+const players = [
+    {name:"Pelaaja", color:"blue", pos:-1},
+    {name:"Botti 1", color:"red", pos:-1},
+    {name:"Botti 2", color:"green", pos:-1},
+    {name:"Botti 3", color:"gold", pos:-1}
+];
+
+players.forEach(p=>{
+    const pawn=document.createElement("div");
+    pawn.className="pawn";
+    pawn.style.background=p.color;
+    board.appendChild(pawn);
+    p.pawn=pawn;
+});
+
+function updatePawns(){
+    players.forEach((p,index)=>{
+        if(p.pos<0){
+            const startX=350+(index-1.5)*60;
+            const startY=350;
+            p.pawn.style.left=startX+"px";
+            p.pawn.style.top=startY+"px";
+        }else if(p.pos>=TOTAL_SPACES){
+            p.pawn.style.left="350px";
+            p.pawn.style.top="350px";
+        }else{
+            p.pawn.style.left=spaces[p.pos].x+"px";
+            p.pawn.style.top=spaces[p.pos].y+"px";
+        }
+    });
+}
+
+updatePawns();
+
+function addLog(text){
+    log.innerHTML += text+"<br>";
+    log.scrollTop=log.scrollHeight;
+}
+
+function capture(player){
+    players.forEach(other=>{
+        if(other!==player &&
+           other.pos===player.pos &&
+           other.pos>=0 &&
+           other.pos<TOTAL_SPACES){
+
+            other.pos=-1;
+            addLog(`${player.name} söi pelaajan ${other.name}!`);
+        }
+    });
+}
+
+function movePlayer(player, roll){
+
+    if(player.pos===-1){
+        if(roll===6){
+            player.pos=0;
+            addLog(`${player.name} pääsi radalle.`);
+        }else{
+            addLog(`${player.name} tarvitsee kuutosen.`);
+        }
+    }else{
+        player.pos += roll;
+
+        if(player.pos>=TOTAL_SPACES){
+            player.pos=TOTAL_SPACES;
+            updatePawns();
+
+            alert(player.name + " voitti pelin!");
+            rollBtn.disabled=true;
+            return true;
+        }
+
+        capture(player);
+    }
+
+    updatePawns();
+    return false;
+}
+
+let turn=0;
+
+function nextTurn(){
+
+    turn=(turn+1)%players.length;
+
+    if(turn===0){
+        statusText.textContent="Sinun vuorosi";
+        rollBtn.disabled=false;
+    }else{
+        statusText.textContent=players[turn].name+" miettii...";
+        rollBtn.disabled=true;
+
+        setTimeout(botTurn,1000);
+    }
+}
+
+rollBtn.onclick=()=>{
+
+    const roll=Math.floor(Math.random()*6)+1;
+
+    addLog(`Pelaaja heitti ${roll}`);
+
+    if(movePlayer(players[0],roll)) return;
+
+    nextTurn();
+};
+
+function botTurn(){
+
+    const bot=players[turn];
+    const roll=Math.floor(Math.random()*6)+1;
+
+    addLog(`${bot.name} heitti ${roll}`);
+
+    if(movePlayer(bot,roll)) return;
+
+    nextTurn();
+}
+</script>
+
+</body>
+</html>

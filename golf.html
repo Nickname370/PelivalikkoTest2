@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Golf</title>
+
+<style>
+body{
+    margin:0;
+    background:#4caf50;
+    overflow:hidden;
+    font-family:Arial,sans-serif;
+}
+
+canvas{
+    display:block;
+    background:#7ed957;
+}
+
+#ui{
+    position:absolute;
+    top:10px;
+    left:10px;
+    background:rgba(255,255,255,0.9);
+    padding:10px;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+button{
+    margin-top:5px;
+}
+</style>
+</head>
+<body>
+
+<div id="ui">
+    Lyönnit: <span id="score">0</span><br>
+    Ennätys: <span id="highscore">-</span><br>
+    <button onclick="resetGame()">Uusi peli</button>
+</div>
+
+<a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+  <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const scoreEl = document.getElementById("score");
+const highscoreEl = document.getElementById("highscore");
+
+let score = 0;
+
+let highscore = localStorage.getItem("golfHighscore");
+if(highscore){
+    highscoreEl.textContent = highscore;
+}
+
+const ball = {
+    x:100,
+    y:canvas.height/2,
+    r:12,
+    vx:0,
+    vy:0
+};
+
+const hole = {
+    x:canvas.width-120,
+    y:canvas.height/2,
+    r:18
+};
+
+let aiming = false;
+let mouseX = 0;
+let mouseY = 0;
+let won = false;
+
+canvas.addEventListener("mousedown",e=>{
+    if(won) return;
+
+    const dx = e.clientX-ball.x;
+    const dy = e.clientY-ball.y;
+
+    if(Math.sqrt(dx*dx+dy*dy)<30){
+        aiming=true;
+    }
+});
+
+canvas.addEventListener("mousemove",e=>{
+    mouseX=e.clientX;
+    mouseY=e.clientY;
+});
+
+canvas.addEventListener("mouseup",e=>{
+    if(!aiming || won) return;
+
+    aiming=false;
+
+    const powerX=(ball.x-e.clientX)*0.12;
+    const powerY=(ball.y-e.clientY)*0.12;
+
+    ball.vx=powerX;
+    ball.vy=powerY;
+
+    score++;
+    scoreEl.textContent=score;
+});
+
+function resetGame(){
+    ball.x=100;
+    ball.y=canvas.height/2;
+    ball.vx=0;
+    ball.vy=0;
+    score=0;
+    scoreEl.textContent=score;
+    won=false;
+}
+
+function update(){
+
+    if(!won){
+
+        ball.x+=ball.vx;
+        ball.y+=ball.vy;
+
+        ball.vx*=0.985;
+        ball.vy*=0.985;
+
+        if(Math.abs(ball.vx)<0.02) ball.vx=0;
+        if(Math.abs(ball.vy)<0.02) ball.vy=0;
+
+        if(ball.x-ball.r<0){
+            ball.x=ball.r;
+            ball.vx*=-0.8;
+        }
+
+        if(ball.x+ball.r>canvas.width){
+            ball.x=canvas.width-ball.r;
+            ball.vx*=-0.8;
+        }
+
+        if(ball.y-ball.r<0){
+            ball.y=ball.r;
+            ball.vy*=-0.8;
+        }
+
+        if(ball.y+ball.r>canvas.height){
+            ball.y=canvas.height-ball.r;
+            ball.vy*=-0.8;
+        }
+
+        const dx=ball.x-hole.x;
+        const dy=ball.y-hole.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+
+        if(dist<hole.r && Math.abs(ball.vx)<1 && Math.abs(ball.vy)<1){
+
+            won=true;
+
+            if(!highscore || score<highscore){
+                highscore=score;
+                localStorage.setItem("golfHighscore",score);
+                highscoreEl.textContent=score;
+            }
+
+            setTimeout(()=>{
+                alert("Pallo reikään! Tulos: "+score);
+            },100);
+        }
+    }
+}
+
+function draw(){
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle="#2d2d2d";
+    ctx.beginPath();
+    ctx.arc(hole.x,hole.y,hole.r,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="white";
+    ctx.beginPath();
+    ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.strokeStyle="black";
+    ctx.stroke();
+
+    if(aiming){
+
+        ctx.strokeStyle="red";
+        ctx.lineWidth=3;
+
+        ctx.beginPath();
+        ctx.moveTo(ball.x,ball.y);
+        ctx.lineTo(mouseX,mouseY);
+        ctx.stroke();
+    }
+}
+
+function gameLoop(){
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>

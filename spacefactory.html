@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8" />
+<title>Avaruus Tehdas</title>
+
+<style>
+body{
+ margin:0;
+ overflow:hidden;
+ font-family:Arial;
+ background:radial-gradient(circle at 30% 20%, #0b1a3a, #02040a);
+ color:white;
+}
+canvas{display:block;}
+
+#ui{
+ position:absolute;
+ top:10px;
+ left:10px;
+ background:rgba(0,0,0,0.55);
+ padding:10px;
+ border-radius:10px;
+ max-width:360px;
+}
+
+button{margin:2px;font-size:11px}
+</style>
+</head>
+<body>
+  <a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+    <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+  </a>
+
+<div id="ui">
+ <div>Klikkaa päivitys-nappia ja klikkaa sitten kerrosta jota haluat päivittää.</div>
+ <br>
+ <div>💰 Krediitit: <span id="credits">0</span></div>
+ <div>📊 Tuotanto/S: <span id="pps">0</span></div>
+ <button onclick="buyWorker()">Palkkaa työntekijä (50)</button>
+ <button onclick="upgradeAuto()">Automaation päivitys (120)</button>
+ <button onclick="resetGame()">RESET</button>
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const c=document.getElementById("game");
+const ctx=c.getContext("2d");
+c.width=window.innerWidth;
+c.height=window.innerHeight;
+
+const cx=c.width/2;
+const stationW=420;
+const floorH=85;
+
+// 💰 state
+let state=JSON.parse(localStorage.getItem("save"))||{};
+let credits=state.credits||0;
+let workers=state.workers||1;
+let auto=state.auto||1;
+
+// 🏭 kerrokset
+const floorMap=[
+ {name:"KRS 0 MYYNTI", type:"market"},
+ {name:"KRS 1 SERVERIT", type:"server"},
+ {name:"KRS 2 METEORIITTI → KULTA", type:"meteor"},
+ {name:"KRS 3 VENUS LASI → ASEET", type:"venus"},
+ {name:"KRS 4 METALLI → ROBOTTI", type:"metal"},
+ {name:"KRS 5 VALVOMO", type:"control"},
+ {name:"KRS 6 KASVIMAA", type:"food"}
+];
+
+// 🧱 kerrosdata
+let floorsData=floorMap.map((_,i)=>({
+ workers:1,
+ level:1,
+ unlocked: i===0
+}));
+
+// 📦 tuotanto
+let production=[];
+let elevator={y:0,dir:1,cargo:[]};
+
+// 🌌 tähdet
+let stars=Array.from({length:120},()=>({
+ x:Math.random()*c.width,
+ y:Math.random()*c.height
+}));
+
+function getY(f){
+ return c.height-120-f*floorH;
+}
+
+// 💾 save
+function save(){
+ localStorage.setItem("save",JSON.stringify({credits,workers,auto}));
+}
+
+// 🔓 unlock cost
+function getUnlockCost(i){
+ return 100*(i+1)*(i+1);
+}
+
+// 🖱️ click (unlock / upgrade)
+c.addEventListener("click",(e)=>{
+ let rect=c.getBoundingClientRect();
+ let mx=e.clientX-rect.left;
+ let my=e.clientY-rect.top;
+
+ for(let i=0;i<floorMap.length;i++){
+  let y=getY(i);
+
+  if(my>y && my<y+floorH){
+
+   // 🔓 unlock
+   if(!floorsData[i].unlocked){
+    let cost=getUnlockCost(i);
+    if(credits>=cost){
+     credits-=cost;
+     floorsData[i].unlocked=true;
+    }
+    return;
+   }
+
+   // 🏭 upgrade
+   if(credits>=50*floorsData[i].level){
+    credits-=50*floorsData[i].level;
+    floorsData[i].workers++;
+    floorsData[i].level++;
+   }
+  }
+ }
+});
+
+function resetGame(){
+ localStorage.removeItem("save");
+
+ credits = 0;
+ workers = 1;
+ auto = 1;
+
+ floorsData = floorMap.map((_,i)=>({
+  workers:1,
+  level:1,
+  unlocked: i===0
+ }));
+
+ production = [];
+ elevator = {y:0,dir:1,cargo:[]};
+
+ alert("Peli resetoitu 🔄");
+}
+
+// 🏭 production
+function produce(){
+ floorsData.forEach((f,i)=>{
+
+  if(!f.unlocked) return;
+
+  let rate=(f.workers*auto)*0.02;
+
+  if(Math.random()<rate){
+   production.push({
+    x: floorMap[i].type=="market" ? cx+150 : cx-150,
+    y: getY(i),
+    floor:i,
+    type:"ore",
+    floorType:floorMap[i].type
+   });
+  }
+ });
+}
+
+// 🛗 elevator
+function processElevator(){
+ elevator.y+=elevator.dir*1.6;
+
+ if(elevator.y<getY(6)) elevator.dir=1;
+
+ if(elevator.y>getY(0)){
+  elevator.dir=-1;
+
+  let earnings=0;
+  elevator.cargo.forEach(()=>earnings+=10);
+  credits+=earnings;
+  elevator.cargo=[];
+ }
+}
+
+// 📦 movement
+function updateProducts(){
+ production.forEach(p=>{
+
+  if(p.floorType=="market"){
+   p.x-=1.8;
+  } else {
+   p.x+=1.8;
+  }
+
+  if(p.x>cx+150 || p.x<cx-150){
+   elevator.cargo.push(p);
+   p.dead=true;
+  }
+ });
+
+ production=production.filter(p=>!p.dead);
+}
+
+// 🎨 render
+function draw(){
+ ctx.clearRect(0,0,c.width,c.height);
+
+ // 🌌 stars
+ stars.forEach(s=>{
+  s.x+=0.04;
+  if(s.x>c.width)s.x=0;
+  ctx.fillStyle="#fff";
+  ctx.fillRect(s.x,s.y,1,1);
+ });
+
+ // 🏢 station
+ ctx.fillStyle="rgba(120,120,120,0.15)";
+ ctx.fillRect(cx-stationW/2,0,stationW,c.height);
+
+ // 🛗 elevator
+ const elevatorX=cx+stationW/2;
+ ctx.fillStyle="rgba(255,255,255,0.08)";
+ ctx.fillRect(elevatorX-20,0,60,c.height);
+
+ ctx.fillStyle="yellow";
+ ctx.fillRect(elevatorX-10,elevator.y,40,30);
+
+ // 🏭 floors
+ for(let i=0;i<floorMap.length;i++){
+  let y=getY(i);
+
+  ctx.fillStyle="rgba(255,255,255,0.05)";
+  ctx.fillRect(cx-stationW/2,y,stationW,floorH-5);
+
+  ctx.fillStyle="#fff";
+  ctx.fillText(floorMap[i].name,cx-200,y+20);
+
+  let f=floorsData[i];
+
+  // 🔒 locked overlay
+  if(!f.unlocked){
+   ctx.fillStyle="rgba(0,0,0,0.6)";
+   ctx.fillRect(cx-stationW/2,y,stationW,floorH-5);
+
+   ctx.fillStyle="#fff";
+   ctx.fillText("🔒 "+getUnlockCost(i),cx-60,y+50);
+  }
+
+  // server visuals
+  if(floorMap[i].type=="server" && f.unlocked){
+   ctx.fillStyle="#444";
+   for(let s=0;s<5;s++){
+    ctx.fillRect(cx-180 + s*20,y+30,10,20);
+   }
+  }
+
+  // control room
+  if(floorMap[i].type=="control" && f.unlocked){
+   ctx.fillStyle="#222";
+   for(let d=0;d<4;d++){
+    ctx.fillRect(cx-160 + d*40,y+40,30,10);
+    ctx.fillStyle="#0ff";
+    ctx.fillRect(cx-150 + d*40,y+30,10,8);
+   }
+  }
+
+  ctx.fillStyle="#fff";
+  ctx.fillText("LVL "+f.level,cx+140,y+55);
+  ctx.fillText("👷"+f.workers,cx-10,y+55);
+ }
+
+ // 📦 items
+ production.forEach(p=>{
+  ctx.fillStyle="cyan";
+  ctx.fillRect(p.x,p.y+20,10,10);
+ });
+}
+
+// 🔁 loop
+function loop(){
+ produce();
+ processElevator();
+ updateProducts();
+ draw();
+
+ document.getElementById("credits").innerText=Math.floor(credits);
+ document.getElementById("pps").innerText=(workers*auto).toFixed(2);
+
+ save();
+ requestAnimationFrame(loop);
+}
+
+loop();
+
+// 🧠 upgrades
+function buyWorker(){
+ if(credits>=50){
+  credits-=50;
+  workers++;
+ }
+}
+
+function upgradeAuto(){
+ if(credits>=120){
+  credits-=120;
+  auto+=0.5;
+ }
+}
+</script>
+
+</body>
+</html>

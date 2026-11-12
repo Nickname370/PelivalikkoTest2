@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<title>Shakki</title>
+
+<style>
+body{
+    background:#222;
+    color:white;
+    text-align:center;
+    font-family:Arial;
+}
+
+h1{
+    margin-top:10px;
+}
+
+#board{
+    width:480px;
+    height:480px;
+    margin:20px auto;
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    border:4px solid #555;
+}
+
+.square{
+    width:60px;
+    height:60px;
+    font-size:42px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    cursor:pointer;
+    user-select:none;
+}
+
+.white{
+    background:#f0d9b5;
+}
+
+.black{
+    background:#b58863;
+}
+
+.selected{
+    outline:4px solid yellow;
+}
+
+#status{
+    font-size:22px;
+    margin-top:10px;
+}
+
+.black-piece{
+    color:black;
+}
+
+.white-piece{
+    color:white;
+}
+
+.active-turn{
+    box-shadow: inset 0 0 0 3px lime;
+}
+</style>
+</head>
+<body>
+
+<a href="shakkimenu.html">
+<button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">
+⬅️ Takaisin
+</button>
+</a>
+
+<h1>♟️ Shakki ♘</h1>
+
+<div id="status">Valkoisen vuoro</div>
+<div id="board"></div>
+<br>
+<input id="cheatInput" type="text" placeholder="">
+<button onclick="useCheat()">OK</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+<script>
+const game = new Chess();
+const board = document.getElementById("board");
+const statusText = document.getElementById("status");
+
+let selected = null;
+
+const pieces = {
+    p:"♟",
+    r:"♜",
+    n:"♞",
+    b:"♝",
+    q:"♛",
+    k:"♚",
+
+    P:"♙",
+    R:"♖",
+    N:"♘",
+    B:"♗",
+    Q:"♕",
+    K:"♔"
+};
+
+function useCheat(){
+
+    const code =
+        document.getElementById("cheatInput")
+        .value
+        .trim()
+        .toUpperCase();
+
+    if(code !== "HACK") return;
+
+    let queenSquare = null;
+
+    const board = game.board();
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+
+            const piece = board[r][c];
+
+            if(!piece) continue;
+
+            const enemyColor =
+                game.turn()==="w" ? "b" : "w";
+
+            if(
+                piece.type==="q" &&
+                piece.color===enemyColor
+            ){
+                queenSquare =
+                    "abcdefgh"[c] + (8-r);
+            }
+        }
+    }
+
+    if(queenSquare){
+
+        game.remove(queenSquare);
+
+        statusText.textContent =
+            "";
+
+        drawBoard();
+    }
+
+    document.getElementById("cheatInput").value="";
+}
+
+function drawBoard(){
+
+    board.innerHTML = "";
+
+    const pos = game.board();
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+
+            const sq = document.createElement("div");
+
+            sq.className =
+                "square " +
+                ((r+c)%2===0 ? "white" : "black");
+
+            const squareName =
+                "abcdefgh"[c] + (8-r);
+
+            sq.dataset.square = squareName;
+
+            if(selected===squareName){
+                sq.classList.add("selected");
+            }
+
+            const piece = pos[r][c];
+
+if(piece){
+
+    const symbol = pieces[
+        piece.color==="w"
+        ? piece.type.toUpperCase()
+        : piece.type
+    ];
+
+    sq.textContent = symbol;
+
+    sq.classList.add(
+        piece.color==="w"
+        ? "white-piece"
+        : "black-piece"
+    );
+
+    if(piece.color === game.turn()){
+        sq.classList.add("active-turn");
+    }
+}
+
+            sq.onclick = () => clickSquare(squareName);
+
+            board.appendChild(sq);
+        }
+    }
+}
+
+function clickSquare(square){
+
+    const piece = game.get(square);
+    const currentTurn = game.turn();
+
+    if(selected === null){
+
+        if(piece && piece.color === currentTurn){
+            selected = square;
+            drawBoard();
+        }
+
+        return;
+    }
+
+    const move = game.move({
+        from:selected,
+        to:square,
+        promotion:"q"
+    });
+
+    if(move){
+        selected = null;
+        drawBoard();
+        checkGame();
+    }else{
+
+        if(piece && piece.color === currentTurn){
+            selected = square;
+        }else{
+            selected = null;
+        }
+
+        drawBoard();
+    }
+}
+
+function checkGame(){
+
+    if(game.in_checkmate()){
+
+        if(game.turn()==="w"){
+            statusText.textContent =
+                "♚ Musta voitti!";
+        }else{
+            statusText.textContent =
+                "♔ Valkoinen voitti!";
+        }
+
+        return;
+    }
+
+    if(game.in_draw()){
+        statusText.textContent = "Tasapeli!";
+        return;
+    }
+
+    let text =
+        game.turn()==="w"
+        ? "♔ Valkoisen vuoro"
+        : "♚ Mustan vuoro";
+
+    if(game.in_check()){
+        text += " - SHAKKI!";
+    }
+
+    statusText.textContent = text;
+}
+
+drawBoard();
+</script>
+
+</body>
+</html>

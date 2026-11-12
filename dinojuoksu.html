@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dinosaurus Juoksu</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #87ceeb;
+    font-family: Arial, sans-serif;
+}
+
+canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+}
+
+#ui {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    text-shadow: 2px 2px 5px black;
+    z-index: 10;
+}
+
+#help {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 17px;
+    text-shadow: 2px 2px 4px black;
+    z-index: 10;
+    text-align: center;
+}
+
+#gameOver {
+    position: absolute;
+    inset: 0;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    background: rgba(0,0,0,0.55);
+    color: white;
+    z-index: 20;
+}
+
+#gameOver h1 {
+    font-size: 55px;
+    margin: 10px;
+}
+
+#gameOver p {
+    font-size: 24px;
+}
+
+button {
+    border: none;
+    border-radius: 10px;
+    padding: 13px 28px;
+    font-size: 21px;
+    cursor: pointer;
+    background: white;
+}
+
+button:hover {
+    transform: scale(1.05);
+}
+</style>
+</head>
+
+<body>
+
+<div id="ui">
+    Score: <span id="score">0</span><br>
+    Highscore: <span id="highscore">0</span>
+</div>
+
+<a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+  <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+
+<div id="help">
+    SPACE / W = hyppy &nbsp;&nbsp; S = mene puun alta &nbsp;&nbsp; Kapea tukki = Mene alta / Paksu tukki = Hyppää / Musta kuoppa = Hyppää
+</div>
+
+<div id="gameOver">
+    <h1>Peli ohi!</h1>
+    <p>Score: <span id="finalScore">0</span></p>
+    <button onclick="restart()">Pelaa uudelleen</button>
+	<a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+  <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+function resize() {
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+}
+
+resize();
+addEventListener("resize", resize);
+
+
+// ===============================
+// ASETUKSET
+// ===============================
+
+const START_SPEED = 1.5;
+const MAX_SPEED = 11;
+
+let score = 0;
+let speed = START_SPEED;
+let gameOver = false;
+
+let spawnTimer = 100;
+let paused = false;
+
+
+// ===============================
+// HIGHSCORE
+// ===============================
+
+let highscore =
+    Number(localStorage.getItem("dinoHighscore")) || 0;
+
+document.getElementById("highscore").textContent = highscore;
+
+
+// ===============================
+// PELAAJA
+// ===============================
+
+const player = {
+
+    x: 0,
+
+    y: 0,
+
+    width: 65,
+
+    height: 85,
+
+    vy: 0,
+
+    jumping: false,
+
+    ducking: false
+};
+
+
+// ===============================
+// ESTEET
+// ===============================
+
+let obstacles = [];
+
+
+// ===============================
+// PELIN ALUSTUS
+// ===============================
+
+function resetGame() {
+
+    score = 0;
+
+    speed = START_SPEED;
+
+    gameOver = false;
+
+    spawnTimer = 100;
+
+    player.x = canvas.width / 2;
+
+    player.y = canvas.height - 180;
+
+    player.vy = 0;
+
+    player.jumping = false;
+
+    player.ducking = false;
+
+    obstacles = [];
+
+    document.getElementById("gameOver").style.display = "none";
+}
+
+resetGame();
+
+
+// ===============================
+// OHJAIMET
+// ===============================
+addEventListener("keydown", function(e) {
+
+    // W tai SPACE = hyppy
+    if (e.code === "Space" || e.code === "KeyW") {
+
+        e.preventDefault();
+
+        if (!player.jumping && !gameOver) {
+
+            player.vy = -16;
+            player.jumping = true;
+        }
+    }
+
+if (e.code === "KeyP") {
+
+    e.preventDefault();
+
+    if (!gameOver) {
+        paused = !paused;
+    }
+}
+
+    // S = mene puun alta
+    if (e.code === "KeyS") {
+
+        e.preventDefault();
+
+        if (!gameOver) {
+
+            player.ducking = true;
+        }
+    }
+
+});
+
+
+
+
+addEventListener("keyup", function(e) {
+
+    // Kun S vapautetaan, nouse takaisin
+    if (e.code === "KeyS") {
+
+        player.ducking = false;
+    }
+
+});
+
+
+
+// ===============================
+// ESTEEN LUONTI
+// ===============================
+
+function spawnObstacle() {
+
+    const r = Math.random();
+
+
+    // Iso kaatunut puu
+    if (r < 0.35) {
+
+        obstacles.push({
+
+            type: "log",
+
+            z: 3500,
+
+            width: 220,
+
+            height: 85,
+
+            hit: false
+        });
+    }
+
+
+    // Kuilu
+    else if (r < 0.65) {
+
+        obstacles.push({
+
+            type: "pit",
+
+            z: 3500,
+
+            width: 280,
+
+            height: 1,
+
+            hit: false
+        });
+    }
+
+
+    // Matala puu jonka alta pitää mennä
+    else {
+
+        obstacles.push({
+
+            type: "lowlog",
+
+            z: 3500,
+
+            width: 260,
+
+            height: 45,
+
+            hit: false
+        });
+    }
+}
+
+
+// ===============================
+// PÄIVITYS
+// ===============================
+
+function update() {
+
+    if (gameOver || paused) {
+        return;
+    }
+
+    if (gameOver) {
+        return;
+    }
+
+
+    // SCORE
+    score += 0.08;
+
+
+    // Nopeus kasvaa hitaasti
+    if (speed < MAX_SPEED) {
+
+        speed += 0.00025;
+    }
+
+
+    document.getElementById("score").textContent =
+        Math.floor(score);
+
+
+    // ===========================
+    // PAINOVOIMA
+    // ===========================
+
+    player.vy += 0.8;
+
+    player.y += player.vy;
+
+
+    const groundY =
+        canvas.height - 180;
+
+
+    if (player.y >= groundY) {
+
+        player.y = groundY;
+
+        player.vy = 0;
+
+        player.jumping = false;
+    }
+
+
+    // ===========================
+    // ESTEIDEN SPAWNAUS
+    // ===========================
+
+    spawnTimer--;
+
+
+    if (spawnTimer <= 0) {
+
+        spawnObstacle();
+
+        // Esteiden väli
+        spawnTimer =
+            110 + Math.random() * 70;
+    }
+
+
+    // ===========================
+    // ESTEET
+    // ===========================
+
+    for (
+        let i = obstacles.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const o = obstacles[i];
+
+
+        // Este tulee kohti
+        o.z -= speed * 10;
+
+
+        // =======================
+        // KUN ESTE ON PELAAJAN KOHDALLA
+        // =======================
+
+        if (o.z < 180 && o.z > 40 && !o.hit) {
+
+            o.hit = true;
+
+
+            // KUILU
+            if (o.type === "pit") {
+
+                if (!player.jumping) {
+
+                    endGame();
+                }
+            }
+
+
+            // ISO PUU
+            if (o.type === "log") {
+
+                if (
+                    !player.jumping ||
+                    player.y > groundY - 80
+                ) {
+
+                    endGame();
+                }
+            }
+
+
+            // MATALA PUU
+            if (o.type === "lowlog") {
+
+                if (!player.ducking) {
+
+                    endGame();
+                }
+            }
+        }
+
+
+        // Poista liian lähelle tullut este
+        if (o.z < -300) {
+
+            obstacles.splice(i, 1);
+        }
+    }
+
+
+    // ===========================
+    // HIGHSCORE
+    // ===========================
+
+    if (Math.floor(score) > highscore) {
+
+        highscore = Math.floor(score);
+
+        localStorage.setItem(
+            "dinoHighscore",
+            highscore
+        );
+
+        document.getElementById("highscore").textContent =
+            highscore;
+    }
+}
+
+
+// ===============================
+// GAME OVER
+// ===============================
+
+function endGame() {
+
+    gameOver = true;
+
+    document.getElementById("finalScore").textContent =
+        Math.floor(score);
+
+    document.getElementById("gameOver").style.display =
+        "flex";
+}
+
+
+// ===============================
+// MAISEMA
+// ===============================
+
+function drawSky() {
+
+    const gradient =
+        ctx.createLinearGradient(
+            0,
+            0,
+            0,
+            canvas.height
+        );
+
+    gradient.addColorStop(0, "#5db8e8");
+
+    gradient.addColorStop(1, "#c9f1ff");
+
+    ctx.fillStyle = gradient;
+
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+}
+
+
+// ===============================
+// AURINKO
+// ===============================
+
+function drawSun() {
+
+    ctx.fillStyle = "#ffd84d";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        canvas.width - 120,
+        100,
+        45,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+}
+
+
+// ===============================
+// PILVET
+// ===============================
+
+function drawCloud(x, y, scale) {
+
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y,
+        25 * scale,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.arc(
+        x + 30 * scale,
+        y - 15 * scale,
+        35 * scale,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.arc(
+        x + 65 * scale,
+        y,
+        25 * scale,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+}
+
+
+// ===============================
+// MAA
+// ===============================
+
+function drawGround() {
+
+    const horizon =
+        canvas.height * 0.35;
+
+
+    // Maa
+    ctx.fillStyle = "#68ad43";
+
+    ctx.beginPath();
+
+    ctx.moveTo(0, canvas.height);
+
+    ctx.lineTo(
+        canvas.width * 0.2,
+        horizon
+    );
+
+    ctx.lineTo(
+        canvas.width * 0.8,
+        horizon
+    );
+
+    ctx.lineTo(
+        canvas.width,
+        canvas.height
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    // Tie
+    ctx.fillStyle = "#8b704d";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        canvas.width * 0.43,
+        horizon
+    );
+
+    ctx.lineTo(
+        canvas.width * 0.57,
+        horizon
+    );
+
+    ctx.lineTo(
+        canvas.width * 0.95,
+        canvas.height
+    );
+
+    ctx.lineTo(
+        canvas.width * 0.05,
+        canvas.height
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    // Tien viivat
+    ctx.strokeStyle = "rgba(255,255,255,0.6)";
+
+    ctx.lineWidth = 3;
+
+    for (
+        let z = 100;
+        z < 3500;
+        z += 150
+    ) {
+
+        const p =
+            1 - z / 3500;
+
+        const y =
+            horizon +
+            (1 - p) *
+            (canvas.height - horizon);
+
+        const w =
+            p * canvas.width * 0.4;
+
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            canvas.width / 2 - w,
+            y
+        );
+
+        ctx.lineTo(
+            canvas.width / 2 + w,
+            y
+        );
+
+        ctx.stroke();
+    }
+}
+
+
+// ===============================
+// 3D PROJEKTIO
+// ===============================
+
+function project(z) {
+
+    const p =
+        Math.max(
+            0,
+            1 - z / 3500
+        );
+
+
+    return {
+
+        scale: p,
+
+        y:
+            canvas.height * 0.35 +
+            (1 - p) *
+            (canvas.height -
+            canvas.height * 0.35)
+    };
+}
+
+
+// ===============================
+// PUIDEN PIIRTÄMINEN
+// ===============================
+
+function drawTree(x, y, scale) {
+
+    // Runko
+    ctx.fillStyle = "#5a351c";
+
+    ctx.fillRect(
+        x - 8 * scale,
+        y - 70 * scale,
+        16 * scale,
+        70 * scale
+    );
+
+
+    // Lehdet
+    ctx.fillStyle = "#276b2c";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y - 90 * scale,
+        35 * scale,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.arc(
+        x - 25 * scale,
+        y - 65 * scale,
+        25 * scale,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.arc(
+        x + 25 * scale,
+        y - 65 * scale,
+        25 * scale,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+}
+
+
+// ===============================
+// ESTEEN PIIRTO
+// ===============================
+
+function drawObstacle(o) {
+
+    const p = project(o.z);
+
+    const w =
+        o.width * p.scale;
+
+    const h =
+        o.height * p.scale;
+
+    const x =
+        canvas.width / 2 - w / 2;
+
+    const groundY = p.y;
+
+
+    // ===========================
+    // KUILU
+    // ===========================
+
+    if (o.type === "pit") {
+
+        ctx.fillStyle = "#151515";
+
+        ctx.beginPath();
+
+        ctx.moveTo(x, groundY);
+
+        ctx.lineTo(
+            x + w,
+            groundY
+        );
+
+        ctx.lineTo(
+            x + w * 0.85,
+            groundY + 35 * p.scale
+        );
+
+        ctx.lineTo(
+            x + w * 0.15,
+            groundY + 35 * p.scale
+        );
+
+        ctx.closePath();
+
+        ctx.fill();
+
+
+        // Kuilun reunat
+        ctx.strokeStyle = "#3f2818";
+
+        ctx.lineWidth =
+            Math.max(2, 8 * p.scale);
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            x,
+            groundY
+        );
+
+        ctx.lineTo(
+            x + w * 0.15,
+            groundY + 35 * p.scale
+        );
+
+        ctx.moveTo(
+            x + w,
+            groundY
+        );
+
+        ctx.lineTo(
+            x + w * 0.85,
+            groundY + 35 * p.scale
+        );
+
+        ctx.stroke();
+
+        return;
+    }
+
+
+    // ===========================
+    // ISO KAATUNUT PUU
+    // ===========================
+
+    if (o.type === "log") {
+
+        const logH =
+            Math.max(
+                15,
+                h
+            );
+
+        ctx.fillStyle = "#633b20";
+
+        ctx.fillRect(
+            x,
+            groundY - logH,
+            w,
+            logH
+        );
+
+
+        // Puun pää
+        ctx.fillStyle = "#9b673c";
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+            x + w,
+            groundY - logH / 2,
+            logH / 2,
+            logH / 2,
+            0,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+
+        // Oksia
+        ctx.strokeStyle = "#4b2b18";
+
+        ctx.lineWidth =
+            Math.max(2, 5 * p.scale);
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            x + w * 0.25,
+            groundY - logH
+        );
+
+        ctx.lineTo(
+            x + w * 0.18,
+            groundY - logH - 35 * p.scale
+        );
+
+        ctx.moveTo(
+            x + w * 0.7,
+            groundY - logH
+        );
+
+        ctx.lineTo(
+            x + w * 0.8,
+            groundY - logH - 30 * p.scale
+        );
+
+        ctx.stroke();
+
+        return;
+    }
+
+
+    // ===========================
+    // MATALA PUU
+    // ===========================
+
+    if (o.type === "lowlog") {
+
+        const lowY =
+            groundY - 80 * p.scale;
+
+        const lowH =
+            Math.max(
+                8,
+                h
+            );
+
+
+        ctx.fillStyle = "#58351c";
+
+        ctx.fillRect(
+            x,
+            lowY,
+            w,
+            lowH
+        );
+
+
+        // Oksat
+        ctx.strokeStyle = "#3f2514";
+
+        ctx.lineWidth =
+            Math.max(2, 5 * p.scale);
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            x + w * 0.2,
+            lowY
+        );
+
+        ctx.lineTo(
+            x + w * 0.1,
+            lowY - 45 * p.scale
+        );
+
+        ctx.moveTo(
+            x + w * 0.75,
+            lowY
+        );
+
+        ctx.lineTo(
+            x + w * 0.9,
+            lowY - 40 * p.scale
+        );
+
+        ctx.stroke();
+    }
+}
+
+
+// ===============================
+// DINOSAURUS
+// ===============================
+
+function drawPlayer() {
+
+    let dinoH =
+        player.ducking ? 50 : 85;
+
+
+    const x = player.x;
+
+    const y = player.y;
+
+
+    ctx.save();
+
+    // ===========================
+    // VARJO
+    // ===========================
+
+    ctx.fillStyle =
+        "rgba(0,0,0,0.25)";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        x,
+        y + 4,
+        45,
+        10,
+        0,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    // ===========================
+    // T-REX
+    // ===========================
+
+    ctx.fillStyle = "#24752d";
+
+
+    // Vartalo
+    ctx.fillRect(
+        x - 28,
+        y - dinoH + 25,
+        50,
+        dinoH - 25
+    );
+
+
+    // Pää
+    ctx.fillRect(
+        x + 10,
+        y - dinoH,
+        48,
+        32
+    );
+
+
+    // Kuono
+    ctx.fillRect(
+        x + 45,
+        y - dinoH + 12,
+        22,
+        14
+    );
+
+
+    // Häntä
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x - 25,
+        y - 45
+    );
+
+    ctx.lineTo(
+        x - 80,
+        y - 25
+    );
+
+    ctx.lineTo(
+        x - 30,
+        y - 10
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    // Jalat
+    ctx.fillRect(
+        x - 20,
+        y - 25,
+        12,
+        25
+    );
+
+    ctx.fillRect(
+        x + 5,
+        y - 25,
+        12,
+        25
+    );
+
+
+    // Kädet
+    if (!player.ducking) {
+
+        ctx.fillRect(
+            x + 20,
+            y - 48,
+            25,
+            7
+        );
+
+        ctx.fillRect(
+            x + 38,
+            y - 45,
+            7,
+            20
+        );
+    }
+
+
+    // Silmä
+    ctx.fillStyle = "white";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x + 42,
+        y - dinoH + 9,
+        5,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    ctx.fillStyle = "black";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x + 43,
+        y - dinoH + 9,
+        2,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    // Hampaat
+    ctx.fillStyle = "white";
+
+    for (
+        let i = 0;
+        i < 5;
+        i++
+    ) {
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            x + 48 + i * 4,
+            y - dinoH + 29
+        );
+
+        ctx.lineTo(
+            x + 51 + i * 4,
+            y - dinoH + 38
+        );
+
+        ctx.lineTo(
+            x + 54 + i * 4,
+            y - dinoH + 29
+        );
+
+        ctx.fill();
+    }
+
+
+    ctx.restore();
+}
+
+
+// ===============================
+// T-REX TAKANA
+// ===============================
+
+function drawChasingRex() {
+
+    if (gameOver) {
+        return;
+    }
+
+    const x = 80;
+    const y = canvas.height - 175;
+
+    ctx.save();
+
+    ctx.globalAlpha = 0.8;
+
+    ctx.fillStyle = "#174b1e";
+
+    // Vartalo
+    ctx.fillRect(
+        x,
+        y - 65,
+        55,
+        65
+    );
+
+    // Pää
+    ctx.fillRect(
+        x + 35,
+        y - 85,
+        45,
+        30
+    );
+
+    // Kuono
+    ctx.fillRect(
+        x + 70,
+        y - 75,
+        22,
+        14
+    );
+
+    // Häntä
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x + 5,
+        y - 45
+    );
+
+    ctx.lineTo(
+        x - 65,
+        y - 20
+    );
+
+    ctx.lineTo(
+        x + 10,
+        y - 5
+    );
+
+    ctx.fill();
+
+    // Jalat
+    ctx.fillRect(
+        x + 10,
+        y - 15,
+        12,
+        20
+    );
+
+    ctx.fillRect(
+        x + 35,
+        y - 15,
+        12,
+        20
+    );
+
+    // Silmä
+    ctx.fillStyle = "red";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x + 67,
+        y - 75,
+        4,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+    ctx.restore();
+}
+
+
+// ===============================
+// PIIRTO
+// ===============================
+
+function draw() {
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    drawSky();
+
+    drawSun();
+
+
+    // Pilvet
+    drawCloud(
+        150,
+        130,
+        1
+    );
+
+    drawCloud(
+        canvas.width - 350,
+        180,
+        0.8
+    );
+
+
+    drawGround();
+
+
+    // Esteet
+    obstacles.forEach(
+        drawObstacle
+    );
+
+
+    // Takana jahtaava T-Rex
+    drawChasingRex();
+
+
+    // Pelaaja
+    drawPlayer();
+}
+
+
+// ===============================
+// RESTART
+// ===============================
+
+function restart() {
+
+    resetGame();
+}
+
+
+// ===============================
+// PÄÄLOOPPI
+// ===============================
+
+function loop() {
+
+    update();
+
+    draw();
+
+    requestAnimationFrame(loop);
+}
+
+loop();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raivokkaat Oliot</title>
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:linear-gradient(#87ceeb,#cceeff);
+    font-family:Arial,sans-serif;
+}
+
+canvas{
+    display:block;
+}
+
+#ui{
+    position:absolute;
+    top:10px;
+    left:10px;
+    background:rgba(255,255,255,0.8);
+    padding:10px;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+#restartBtn{
+    padding:8px 14px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:16px;
+}
+
+#restartBtn:hover{
+    transform:scale(1.05);
+}
+</style>
+</head>
+<body>
+
+<div id="ui">
+    Raivokkaat Oliot<br>
+    Pisteet: <span id="score">0</span><br>
+	R = uusi olio
+	<br><br>
+    <button id="restartBtn">🔄 Aloita alusta</button>
+</div>
+
+<a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+  <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+function resize(){
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+}
+resize();
+addEventListener("resize", resize);
+
+let score = 0;
+
+const gravity = 0.4;
+
+const sling = {
+    x: 150,
+    y: canvas.height - 180
+};
+
+let bird = createBird();
+let dragging = false;
+
+function createBird(){
+    return {
+        x:sling.x,
+        y:sling.y,
+        vx:0,
+        vy:0,
+        radius:20,
+        launched:false
+    };
+}
+
+const boxes = [];
+
+function createLevel(){
+    boxes.length = 0;
+
+    let startX = canvas.width - 350;
+    let groundY = canvas.height - 120;
+
+    for(let row=0; row<5; row++){
+        for(let col=0; col<5-row; col++){
+boxes.push({
+    x:startX + col*60 + row*30,
+    y:groundY - row*60,
+    w:55,
+    h:55,
+    vx:0,
+    vy:0,
+    alive:true,
+    hit:false
+});
+        }
+    }
+}
+createLevel();
+
+canvas.addEventListener("mousedown", e=>{
+    let dx = e.clientX - bird.x;
+    let dy = e.clientY - bird.y;
+
+    if(Math.sqrt(dx*dx+dy*dy) < bird.radius+10 && !bird.launched){
+        dragging = true;
+    }
+});
+
+canvas.addEventListener("mousemove", e=>{
+    if(!dragging) return;
+
+    bird.x = e.clientX;
+    bird.y = e.clientY;
+});
+
+canvas.addEventListener("mouseup", ()=>{
+    if(!dragging) return;
+
+    dragging = false;
+
+    bird.vx = (sling.x - bird.x) * 0.18;
+    bird.vy = (sling.y - bird.y) * 0.18;
+
+    bird.launched = true;
+});
+
+addEventListener("keydown", e=>{
+    if(e.key.toLowerCase() === "r"){
+        bird = createBird();
+    }
+});
+
+function restartGame(){
+
+    score = 0;
+    document.getElementById("score").textContent = score;
+
+    bird = createBird();
+
+    createLevel();
+}
+
+document.getElementById("restartBtn").addEventListener("click", ()=>{
+    restartGame();
+});
+
+function updateBird(){
+
+    if(!bird.launched || dragging) return;
+
+    bird.vy += gravity;
+    bird.x += bird.vx;
+    bird.y += bird.vy;
+
+    bird.vx *= 0.999;
+
+    if(bird.y + bird.radius > canvas.height - 40){
+        bird.y = canvas.height - 40 - bird.radius;
+        bird.vy *= -0.45;
+        bird.vx *= 0.85;
+    }
+
+    for(const box of boxes){
+
+        if(!box.alive) continue;
+
+        if(
+            bird.x + bird.radius > box.x &&
+            bird.x - bird.radius < box.x + box.w &&
+            bird.y + bird.radius > box.y &&
+            bird.y - bird.radius < box.y + box.h
+        ){
+
+            let speed = Math.sqrt(
+                bird.vx*bird.vx +
+                bird.vy*bird.vy
+            );
+
+            box.vx += bird.vx * 0.3;
+            box.vy += bird.vy * 0.3;
+
+            bird.vx *= 0.7;
+            bird.vy *= 0.7;
+
+            if(speed > 5){
+                box.alive = false;
+                score += 100;
+                document.getElementById("score").textContent = score;
+            }
+        }
+    }
+}
+
+function updateBoxes(){
+
+    for(const box of boxes){
+
+        if(!box.alive) continue;
+
+        if(box.hit){
+
+            box.vy += gravity;
+            box.x += box.vx;
+            box.y += box.vy;
+
+            if(box.y + box.h > canvas.height - 40){
+                box.y = canvas.height - 40 - box.h;
+                box.vy *= -0.2;
+            }
+        }
+    }
+}
+
+function drawGround(){
+    ctx.fillStyle = "#5dbb63";
+    ctx.fillRect(0, canvas.height-40, canvas.width, 40);
+}
+
+function drawSling(){
+ctx.strokeStyle = "#5b341c";
+ctx.lineWidth = 8;
+
+// Y:n varsi
+ctx.beginPath();
+ctx.moveTo(sling.x, sling.y + 50);
+ctx.lineTo(sling.x, sling.y);
+ctx.stroke();
+
+// vasen haara
+ctx.beginPath();
+ctx.moveTo(sling.x, sling.y);
+ctx.lineTo(sling.x - 20, sling.y - 40);
+ctx.stroke();
+
+// oikea haara
+ctx.beginPath();
+ctx.moveTo(sling.x, sling.y);
+ctx.lineTo(sling.x + 20, sling.y - 40);
+ctx.stroke();
+
+    if(!bird.launched || dragging){
+
+        ctx.strokeStyle="black";
+        ctx.lineWidth=3;
+
+        ctx.beginPath();
+        ctx.moveTo(sling.x-10,sling.y);
+        ctx.lineTo(bird.x,bird.y);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(sling.x+10,sling.y);
+        ctx.lineTo(bird.x,bird.y);
+        ctx.stroke();
+    }
+}
+
+function drawBird(){
+
+    ctx.fillStyle="crimson";
+
+    ctx.beginPath();
+    ctx.arc(bird.x,bird.y,bird.radius,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="white";
+    ctx.beginPath();
+    ctx.arc(bird.x+5,bird.y-5,5,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="black";
+    ctx.beginPath();
+    ctx.arc(bird.x+6,bird.y-5,2,0,Math.PI*2);
+    ctx.fill();
+}
+
+function drawBoxes(){
+
+    for(const box of boxes){
+
+        if(!box.alive) continue;
+
+        ctx.fillStyle="#c68c53";
+        ctx.fillRect(box.x,box.y,box.w,box.h);
+
+        ctx.strokeStyle="#7a4f24";
+        ctx.strokeRect(box.x,box.y,box.w,box.h);
+    }
+}
+
+function draw(){
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    drawGround();
+    drawSling();
+    drawBoxes();
+    drawBird();
+}
+
+function loop(){
+
+    updateBird();
+    updateBoxes();
+
+    draw();
+
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>

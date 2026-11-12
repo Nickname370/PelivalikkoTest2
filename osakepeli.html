@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pörssipeli</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        .status-box {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .stock-card {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        button {
+            padding: 8px 12px;
+            margin-left: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .buy-btn { background-color: #4caf50; color: white; }
+        .sell-btn { background-color: #f44336; color: white; }
+        .next-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: #2196f3;
+            color: white;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+<a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+  <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+
+    <h1>📈 Pörssipeli</h1>
+    
+    <!-- Pelaajan tilanne -->
+    <div class="status-box">
+        <p><strong>Päivä:</strong> <span id="day">1</span>/30</p>
+        <p><strong>Käteinen:</strong> <span id="cash">1000</span> €</p>
+        <p><strong>Salkun arvo:</strong> <span id="portfolio-value">0</span> €</p>
+        <p><strong>Kokonaisvarallisuus:</strong> <span id="total-wealth">1000</span> €</p>
+    </div>
+
+    <!-- Osakkeet -->
+    <div id="stocks-container">
+        <!-- Osakkeet luodaan täähän JavaScriptillä -->
+    </div>
+
+    <!-- Seuraava päivä -painike -->
+    <button class="next-btn" onclick="nextDay()">Lopeta päivä (Muuta kurssit) 🗓️</button>
+
+    <script>
+        // Pelin alkutilanne
+        let cash = 1000;
+        let day = 1;
+        const maxDays = 30;
+
+        // Osakelista: nimi, nykyinen hinta, minimihinta, maksimihinta, omistettu määrä
+        const stocks = [
+            { id: 'tech', name: 'Teknologia Oy', price: 100, min: 30, max: 250, owned: 0 },
+            { id: 'energy', name: 'Suomi Energia', price: 50, min: 15, max: 120, owned: 0 },
+            { id: 'health', name: 'Lääke Terveys', price: 10, min: 2, max: 30, owned: 0 }
+        ];
+
+        // Päivittää pelinäkymän tekstikentät ja painikkeet
+        function updateUI() {
+            document.getElementById('cash').innerText = cash.toFixed(2);
+            document.getElementById('day').innerText = day;
+
+            let portfolioValue = 0;
+            const container = document.getElementById('stocks-container');
+            container.innerHTML = ''; // Tyhjennetään vanha lista
+
+            stocks.forEach(stock => {
+                const stockValue = stock.owned * stock.price;
+                portfolioValue += stockValue;
+
+                // Luodaan jokaiselle osakkeelle oma laatikko painikkeineen
+                const card = document.createElement('div');
+                card.className = 'stock-card';
+                card.innerHTML = `
+                    <div>
+                        <strong>${stock.name}</strong><br>
+                        Hinta: ${stock.price} €<br>
+                        Omistat: ${stock.owned} kpl (Arvo: ${stockValue.toFixed(2)} €)
+                    </div>
+                    <div>
+                        <button class="buy-btn" onclick="buyStock('${stock.id}')" ${cash < stock.price ? 'disabled' : ''}>Osta 1</button>
+                        <button class="sell-btn" onclick="sellStock('${stock.id}')" ${stock.owned <= 0 ? 'disabled' : ''}>Myy 1</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            document.getElementById('portfolio-value').innerText = portfolioValue.toFixed(2);
+            document.getElementById('total-wealth').innerText = (cash + portfolioValue).toFixed(2);
+        }
+
+        // Osakkeen ostaminen
+        function buyStock(id) {
+            const stock = stocks.find(s => s.id === id);
+            if (cash >= stock.price) {
+                cash -= stock.price;
+                stock.owned += 1;
+                updateUI();
+            }
+        }
+
+        // Osakkeen myyminen
+        function sellStock(id) {
+            const stock = stocks.find(s => s.id === id);
+            if (stock.owned > 0) {
+                cash += stock.price;
+                stock.owned -= 1;
+                updateUI();
+            }
+        }
+
+        // Seuraava päivä ja kurssien muuttuminen
+        function nextDay() {
+            if (day >= maxDays) {
+                let finalWealth = cash + stocks.reduce((sum, s) => sum + (s.owned * s.price), 0);
+                alert(`Peli päättyi! Selvisit 30 päivää.\nLopullinen varallisuutesi: ${finalWealth.toFixed(2)} €`);
+                resetGame();
+                return;
+            }
+
+            day += 1;
+
+            // Lasketaan uudet hinnat satunnaisesti (kurssi voi nousta tai laskea)
+            stocks.forEach(stock => {
+                const changePercent = (Math.random() * 0.4) - 0.2; // -20% ... +20% muutos
+                let newPrice = stock.price * (1 + changePercent);
+                
+                // Pidetään hinta minimi- ja maksimirajojen sisällä
+                if (newPrice < stock.min) newPrice = stock.min;
+                if (newPrice > stock.max) newPrice = stock.max;
+                
+                stock.price = Math.round(newPrice);
+            });
+
+            updateUI();
+        }
+
+        // Pelin nollaus alusta
+        function resetGame() {
+            cash = 1000;
+            day = 1;
+            stocks.forEach(stock => {
+                stock.owned = 0;
+            });
+            stocks[0].price = 100;
+            stocks[1].price = 50;
+            stocks[2].price = 10;
+            updateUI();
+        }
+
+        // Käynnistetään peli ensimmäisen kerran
+        updateUI();
+    </script>
+
+</body>
+</html>

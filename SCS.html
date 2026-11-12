@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<title>Social Credit System</title>
+
+<style>
+body {
+    margin: 0;
+    background: #0b1220;
+    color: white;
+    font-family: Arial;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1 { color:#38bdf8; margin-top:15px; }
+
+#box {
+    margin-top: 20px;
+    background: #111827;
+    padding: 20px;
+    border-radius: 12px;
+    width: 420px;
+    text-align: center;
+}
+
+input {
+    padding: 8px;
+    border-radius: 6px;
+    border: none;
+    margin: 5px;
+}
+
+button {
+    padding: 10px 14px;
+    margin: 5px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.plus { background:#22c55e; }
+.minus { background:#ef4444; }
+
+.player {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 8px;
+    margin: 4px 0;
+    background: #1f2937;
+    border-radius: 6px;
+}
+
+.player.active {
+    outline: 2px solid #38bdf8;
+}
+
+.bot {
+    color: #a78bfa;
+}
+</style>
+</head>
+
+<body>
+<a href="Salainen.html">
+  <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+
+<h1>🌐 Social Credit System</h1>
+
+<div id="box">
+
+<input id="nameInput" placeholder="Lisää pelaaja">
+<button onclick="addPlayer()">Lisää</button>
+
+<div>
+    <button class="plus" onclick="changeScore(2)">+2</button>
+    <button class="minus" onclick="changeScore(-2)">-2</button>
+</div>
+
+<div id="leaderboard"></div>
+
+</div>
+
+<script>
+
+let players = {
+    "AI_User_1": 0,
+    "AI_User_2": 0,
+    "AI_User_3": 0,
+    "AI_User_4": 0, 
+    "AI_User_5": 0,
+    "AI_User_6": 0,
+    "AI_User_7": 0,
+    "AI_User_8": 0,
+    "AI_User_9": 0,
+    "AI_User_10": 0,
+    "AI_User_11": 0,
+    "AI_User_12": 0,
+    "AI_User_13": 0
+};
+
+let current = "";
+
+// 👥 lisää pelaaja
+function addPlayer() {
+
+    const name = document.getElementById("nameInput").value.trim();
+    if (!name || players[name] !== undefined) return;
+
+    players[name] = 0;
+    current = name;
+
+    document.getElementById("nameInput").value = "";
+
+    render();
+}
+
+// 🎯 valinta
+function select(name) {
+    current = name;
+    render();
+}
+
+// ➕➖ pisteet
+function changeScore(v) {
+    if (!current) return;
+
+    players[current] += v;
+    render();
+}
+
+// 📊 render leaderboard
+function render() {
+
+    const board = document.getElementById("leaderboard");
+    board.innerHTML = "";
+
+    // järjestetään pisteiden mukaan
+    const sorted = Object.entries(players)
+        .sort((a, b) => b[1] - a[1]);
+
+    // 👑 sijoitus alkaa 1
+    sorted.forEach(([name, score], index) => {
+
+        const div = document.createElement("div");
+        div.className = "player";
+
+        if (name === current) div.classList.add("active");
+        if (name.startsWith("AI")) div.classList.add("bot");
+
+        div.innerHTML = `
+            <span style="width:40px; display:inline-block;">
+                #${index + 1}
+            </span>
+            <span style="flex:1;">
+                ${name}
+            </span>
+            <span>
+                ${score}
+            </span>
+        `;
+
+        div.onclick = () => {
+            current = name;
+            render();
+        };
+
+        board.appendChild(div);
+    });
+}
+// 🤖 botit muuttavat pisteitä itse
+function botActivity() {
+
+    const bots = Object.keys(players).filter(p => p.startsWith("AI"));
+
+    const bot = bots[Math.floor(Math.random() * bots.length)];
+
+    const change = Math.random() > 0.5 ? 2 : -2;
+
+    players[bot] += change;
+
+    render();
+}
+
+function weightedEvent(name) {
+
+    const score = players[name];
+
+    let change = 0;
+
+    if (score > 10) {
+        // 🟢 rikkaat: hyvä tuuri
+        change = Math.random() < 0.7
+            ? (Math.random() < 0.5 ? 2 : 4)
+            : -2;
+
+    } else if (score > 0) {
+        // 🟡 neutraali
+        change = Math.random() < 0.5
+            ? 2
+            : -2;
+
+    } else {
+        // 🔴 köyhät: huono tuuri
+        change = Math.random() < 0.7
+            ? (Math.random() < 0.5 ? -2 : -4)
+            : 2;
+    }
+
+    players[name] += change;
+}
+
+// 🌐 “online eventit”
+function onlineEvents() {
+
+    const names = Object.keys(players);
+
+    const target = names[Math.floor(Math.random() * names.length)];
+    const change = Math.random() > 0.5 ? 2 : -2;
+
+    weightedEvent(target);
+
+    render();
+}
+
+// ⏱ simulaatio
+setInterval(botActivity, 500);
+setInterval(onlineEvents, 100);
+
+render();
+
+</script>
+
+</body>
+</html>

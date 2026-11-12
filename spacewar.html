@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<title>Avaruus Sota</title>
+<style>
+body { 
+margin:0; 
+overflow:hidden; 
+font-family:Arial; 
+background:black; 
+color:white; 
+}
+
+canvas { 
+display:block; 
+background: radial-gradient(circle at center, #0b0f2a, #000); 
+}
+
+#ui {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 228px;
+  background: rgba(0,0,0,0.6);
+  padding: 10px;
+  border-radius: 10px;
+}
+
+button {
+  width: 100%;
+  margin-top: 5px;
+  padding: 6px;
+  cursor: pointer;
+}
+
+.back-btn {
+position:absolute; 
+top:20px; right:20px; 
+padding:10px 14px; 
+font-size:16px; 
+cursor:pointer; 
+width: 10%;
+}
+
+</style>
+</head>
+<body>
+<a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+  <button class="back-btn">⬅️ Takaisin</button>
+</a>
+
+<canvas id="game"></canvas>
+
+<div id="ui">
+  <h3>🚀 Avaruus Sota</h3>
+  <div id="stats"></div>
+  <button onclick="buyShip()">Osta uusi alus (50💰)</button>
+  <button onclick="upgradeDamage()">Upgrade Damage (30💰)</button>
+  <button onclick="upgradeHp()">Upgrade HP (30💰)</button>
+  <p>Klikkaa planeettaa hyökätäksesi</p>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let money = 100;
+
+let player = {
+  damage: 10,
+  hp: 100,
+  maxHp: 100,
+  ships: 1
+};
+
+let planets = [
+  {x:400,y:300,r:30,hp:50,def:5,owned:false, reward:40},
+  {x:500,y:300,r:40,hp:80,def:10,owned:false, reward:60},
+  {x:800,y:500,r:50,hp:120,def:15,owned:false, reward:100},
+  {x:200,y:550,r:60,hp:180,def:20,owned:false, reward:150},
+  {x:1400,y:350,r:70,hp:220,def:30,owned:false, reward:200},
+  {x:1000,y:420,r:80,hp:260,def:40,owned:false, reward:300}
+];
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // planeetat
+  planets.forEach(p=>{
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle = p.owned ? "green" : "red";
+    ctx.fill();
+    ctx.strokeStyle="white";
+    ctx.stroke();
+
+    ctx.fillStyle="white";
+    ctx.fillText("HP:"+p.hp, p.x-20,p.y-10);
+  });
+
+  // UI update
+  document.getElementById("stats").innerHTML =
+    `💰 Raha: ${money}<br>
+     🚀 Aluksia: ${player.ships}<br>
+     ⚔️ Damage: ${player.damage}<br>
+     ❤️ HP: ${player.hp}/${player.maxHp}`;
+}
+
+function attackPlanet(p){
+  if(p.owned) return;
+
+  let playerPower = player.damage * player.ships;
+  let enemyPower = p.def;
+
+  p.hp -= playerPower;
+  player.hp -= enemyPower;
+
+  if(player.hp <= 0){
+    player.hp = player.maxHp;
+    alert("Aluksesi tuhoutui mutta palasit tukikohtaan!");
+    return;
+  }
+
+  if(p.hp <= 0){
+    p.owned = true;
+    money += p.reward;
+    alert("Planeetta valloitettu! +"+p.reward+"💰");
+  }
+}
+
+canvas.addEventListener("click",(e)=>{
+  let mx = e.clientX;
+  let my = e.clientY;
+
+  planets.forEach(p=>{
+    let dx = mx - p.x;
+    let dy = my - p.y;
+    if(Math.sqrt(dx*dx+dy*dy) < p.r){
+      attackPlanet(p);
+    }
+  });
+});
+
+function buyShip(){
+  if(money >= 50){
+    money -= 50;
+    player.ships++;
+  }
+}
+
+function upgradeDamage(){
+  if(money >= 30){
+    money -= 30;
+    player.damage += 5;
+  }
+}
+
+function upgradeHp(){
+  if(money >= 30){
+    money -= 30;
+    player.maxHp += 20;
+    player.hp = player.maxHp;
+  }
+}
+
+function loop(){
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>

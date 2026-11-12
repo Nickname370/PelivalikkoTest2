@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viruspedia</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f6f6f6;
+            color: #202122;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            position: relative;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #a2a9b1;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .wiki-logo {
+            font-family: serif;
+            font-size: 20px;
+            font-weight: bold;
+            color: #000;
+            text-decoration: none;
+        }
+        .main-container {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-left: 1px solid #a2a9b1;
+            border-right: 1px solid #a2a9b1;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 160px;
+            padding: 20px 10px;
+            font-size: 30px;
+            border-right: 1px solid #a2a9b1;
+            background-color: #f6f6f6;
+            flex-shrink: 0;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+        .sidebar li {
+            margin-bottom: 8px;
+        }
+        .sidebar a {
+            color: #0645ad;
+            text-decoration: none;
+        }
+        .content {
+            flex: 1;
+            padding: 20px 40px;
+        }
+        h1 {
+            font-family: serif;
+            font-size: 28px;
+            font-weight: normal;
+            border-bottom: 1px solid #a2a9b1;
+            margin-bottom: 5px;
+            padding-bottom: 5px;
+        }
+        h2 {
+            font-family: serif;
+            font-weight: normal;
+            font-size: 22px;
+            border-bottom: 1px solid #a2a9b1;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        .site-sub {
+            font-size: 12px;
+            color: #54595d;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+        
+        .wiki-thumb {
+            border: 1px solid #c8ccd1;
+            background-color: #f8f9fa;
+            padding: 3px;
+            margin-left: 20px;
+            margin-bottom: 20px;
+            float: right;
+            clear: right;
+            width: 220px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .wiki-thumb-caption {
+            font-size: 11px;
+            color: #202122;
+            padding: 4px 6px 3px 6px;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        /* --- HUONEKALU-KUVAT --- */
+
+        /* 1. Kirjahylly */
+        .image-bookshelf {
+            width: 150px;
+            height: 200px;
+            border: 6px solid #6E3A07;
+            background-color: #CD9A62;
+            cursor: pointer;
+            margin: 10px auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+            padding: 4px;
+        }
+        .shelf-layer {
+            border-bottom: 5px solid #6E3A07;
+            height: 55px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-start;
+            gap: 2px;
+        }
+        .single-book {
+            width: 12px;
+            display: none;
+            border-radius: 1px 1px 0 0;
+        }
+        .b-1 { background-color: #b32424; height: 38px; }
+        .b-2 { background-color: #244cb3; height: 44px; }
+        .b-3 { background-color: #248b52; height: 34px; }
+
+        /* 2. Lamppu */
+        .image-lamp-wrapper {
+            width: 100px;
+            margin: 10px auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+        .lamp-top {
+            width: 60px;
+            height: 40px;
+            background-color: #d1d1d1;
+            border: 1px solid #999;
+            border-radius: 12px 12px 0 0;
+            transition: background-color 0.2s;
+        }
+        .lamp-stick { width: 4px; height: 110px; background-color: #444; }
+        .lamp-bottom { width: 40px; height: 8px; background-color: #222; border-radius: 3px 3px 0 0; }
+        .image-lamp-wrapper.light-on .lamp-top {
+            background-color: #fff154;
+            box-shadow: 0 0 25px rgba(255, 241, 84, 0.7);
+        }
+
+        /* 3. Ovi */
+        .image-door-wrapper {
+            width: 120px;
+            height: 200px;
+            background-color: #444; /* Karmin sisäosa (pimeys) */
+            border: 5px solid #8B4513; /* Oven karmit */
+            margin: 10px auto;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .door-panel {
+            width: 100%;
+            height: 100%;
+            background-color: #CD853F; /* Oven puupinta */
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: transform 0.4s ease;
+            transform-origin: left; /* Ovi aukeaa vasemmalle */
+            box-sizing: border-box;
+            border-right: 2px solid #5c3317;
+        }
+        .door-handle {
+            width: 15px;
+            height: 6px;
+            background-color: #gold;
+            background: linear-gradient(#ffee77, #aa8800);
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            border-radius: 2px;
+        }
+        /* Kun ovi avataan, paneeli kääntyy sivuun */
+        .image-door-wrapper.door-open .door-panel {
+            transform: perspective(600px) rotateY(-80deg);
+        }
+
+        /* --- VIRUSIKKUNAT --- */
+        .virus-popup {
+            position: absolute;
+            width: 240px;
+            background-color: #f0f0f0;
+            border: 2px solid #005A9E;
+            box-shadow: 3px 3px 15px rgba(0,0,0,0.3);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            z-index: 9900;
+            box-sizing: border-box;
+        }
+        .virus-header {
+            background: linear-gradient(to right, #0078D7, #00BCF2);
+            color: white;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .virus-close-x {
+            background-color: #e81123;
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .virus-close-x:hover {
+            background-color: #f1707a;
+        }
+        .virus-body {
+            padding: 15px;
+            text-align: center;
+            font-size: 14px;
+            color: #333;
+        }
+        .virus-ok-btn {
+            background-color: #e1e1e1;
+            border: 1px solid #adadad;
+            padding: 5px 20px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        .virus-ok-btn:hover {
+            background-color: #e5f1fb;
+            border-color: #0078d7;
+        }
+		/* Sivun pimentävä kerros */
+#darkness {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.2);
+    pointer-events: none;
+    z-index: 9999;
+    transition: all 0.4s ease;
+}
+
+/* Lampun ollessa päällä */
+#darkness.light-on {
+    background:
+    radial-gradient(
+        circle at 78% 280px,
+        rgba(255,255,180,0.65) 0px,
+        rgba(255,255,180,0.4) 150px,
+        rgba(255,255,180,0.0,2) 300px,
+        rgba(0,0,0,0.45) 500px
+    );
+}
+
+#score {
+    font-weight: bold;
+    font-size: 16px;
+    color: #202122;
+    background: #f8f9fa;
+    border: 1px solid #a2a9b1;
+    padding: 4px 10px;
+}
+    </style>
+</head>
+<body>
+<div id="darkness"></div>
+    <header>
+        <a href="pedia.html" class="wiki-logo">VIRUSPEDIA</a>
+        <div id="score">
+		Score: 0
+		</div>
+    </header>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <ul>
+                <li><a href="https://nickname370.github.io/AloitusTest11/valikko3.html">⬅️ Takasin</a></li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <h1>Huonekalu ja rakennusosat</h1>
+            <div class="site-sub">Viruspediasta, virusten valloittamasta tietosanakirjasta</div>
+            
+            <p>Tämä sivu käsittelee sisustuksen ja arkkitehtuurin peruselementtejä.</p>
+
+            <!-- KIRJAHYLLY -->
+            <div class="wiki-thumb">
+                <div class="image-bookshelf" onclick="clickBookshelf()">
+                    <div class="shelf-layer"><div class="single-book b-1"></div><div class="single-book b-2"></div></div>
+                    <div class="shelf-layer"><div class="single-book b-3"></div><div class="single-book b-1"></div></div>
+                </div>
+                <div class="wiki-thumb-caption">Kuva 1. Kirjahylly.</div>
+            </div>
+
+            <!-- LAMPPU -->
+            <div class="wiki-thumb">
+                <div class="image-lamp-wrapper" onclick="clickLamp(this)">
+                    <div class="lamp-top"></div><div class="lamp-stick"></div><div class="lamp-bottom"></div>
+                </div>
+                <div class="wiki-thumb-caption">Kuva 2. Lattialamppu.</div>
+            </div>
+
+            <!-- UUSI: OVI -->
+            <div class="wiki-thumb">
+                <div class="image-door-wrapper" onclick="clickDoor(this)">
+                    <div class="door-panel">
+                        <div class="door-handle"></div>
+                    </div>
+                </div>
+                <div class="wiki-thumb-caption">Kuva 3. Puinen ovi.</div>
+            </div>
+ <h2>Säilytyskalusteet ja kirjahyllyt</h2>
+            <p>Säilytyskalusteiden pääasiallinen tarkoitus on pitää kodin esineet, kirjat ja tarvikkeet järjestyksessä. Yleisimpiä säilytyskalusteita ovat kaapit, lipastot ja avoimet kirjahyllyt. Kirjahyllyt valmistetaan useimmiten puusta, metallista tai puristebetonista, ja ne koostuvat useista vaakasuorista tasoista eli hyllyistä.</p>
+            <p>Historiallisesti kirjahyllyt olivat vain varakkaiden ja oppineiden etuoikeus, sillä kirjat olivat käsin kirjoitettuja ja erittäin arvokkaita. Nykyään ne ovat vakiovaruste useimmissa kodeissa ja toimistoissa. Modernissa sisustuksessa kirjahyllyjä käytetään usein myös tilanjakajina sekä koriste-esineiden esillepanoon.</p>
+
+            <h2>Valaisimet ja sisustusvalaistus</h2>
+            <p>Vaikka valaisimia ei aina lasketa varsinaisiksi huonekaluiksi, ne ovat kiinteä osa huoneen kalustusta, ergonomiaa ja toiminnallisuutta. Lattialamput ja pöytälamput tarjoavat kohdistettua valoa lukemiseen, opiskeluun ja työskentelyyn. Ne sijoitetaan usein nojatuolien, työpöytien tai kirjahyllyjen läheisyyteen parantamaan tilan käytettävyyttä.</p>
+            <p>Valaistuksella on suuri merkitys tilan tunnelman luomisessa ja huonekalujen värien korostamisessa. Nykyaikaiset sähkövalaisimet ovat kehittyneet varhaisista öljylampuista ja kynttilöistä monimutkaisiksi design-tuotteiksi, joissa hyödynnetään energiatehokasta LED-teknologiaa ja älykästä ohjausta.</p>
+
+            <h2>Kiinteät sisustuselementtijärjestelmät ja ovet</h2>
+            <p>Ovet erottavat tiloja toisistaan ja tarjoavat yksityisyyttä, äänieristystä sekä suojaa. Toisin kuin siirrettävät huonekalut, ovet kiinnitetään yleensä saranoilla rakennuksen seinärakenteisiin tai karmeihin, mutta ne lasketaan tärkeäksi osaksi huoneen visuaalista ja toiminnallista kokonaisuutta.</p>
+            <p>Oven avaaminen ja sulkeminen säätelee huoneiden välistä kulkua, ilmavirtoja sekä valon pääsyä tilasta toiseen. Arkkitehtuurissa ovien materiaalivalinnoilla – kuten massiivipuulla, lasilla tai metallilla – on suuri vaikutus rakennuksen sisustuksen tyyliin ja turvallisuustasoon.</p>
+		</div>
+    </div>
+
+<script>
+	
+	const virusMessages = [
+    "Virus havaittu!",
+    "Tietokoneesi on vaarassa!",
+    "Päivitys epäonnistui!",
+    "5 haittaohjelmaa löydetty!",
+	"Ladata uusi hieno peli!",
+	"Pelata uusi hyvä peli!",
+	"Autosi tarvitsee välitöntä huoltoa!",
+	"Puhelimesi tarvitsee välitöntä huoltoa!",
+	"Paina voittaaksesi 5 miljoona euro!",
+    "Varoitus: epäilyttävää toimintaa!",
+    "Virus havaittu!",
+    "Kriittinen järjestelmävirhe!",
+    "17 haittaohjelmaa löydetty!",
+    "Ladata uusi hieno peli!",
+    "Pelata uusi hyvä peli!",
+    "Paina voittaaksesi 5 miljoona euro!",
+    "Epäilyttävää toimintaa havaittu!",
+    "Järjestelmä ylikuumenee!",
+    "Tuntematon virus löydetty!",
+    "Tietokoneesi tarvitsee välitöntä huoltoa!",
+    "Tiedostosi ovat vaarassa!",
+    "342 tiedostoa on vaarassa!",
+    "Tietokoneesi on liian hidas!",
+    "Järjestelmä räjähtää 10 sekunnin kuluttua!",
+    "Kirjahyllyvirus havaittu!"
+];
+
+let score = 0;
+	
+        // Kirjahyllyn toiminta
+        function clickBookshelf() {
+            const books = document.querySelectorAll('.single-book');
+            if (books.length === 0) return;
+            const hidden = books[0].style.display === 'none' || books[0].style.display === '';
+            books.forEach(b => b.style.display = hidden ? 'block' : 'none');
+        }
+
+        // Lampun toiminta
+function clickLamp(lamp) {
+    lamp.classList.toggle('light-on');
+
+    const darkness = document.getElementById('darkness');
+
+    if (lamp.classList.contains('light-on')) {
+        darkness.classList.add('light-on');
+    } else {
+        darkness.classList.remove('light-on');
+    }
+}
+
+        // Oven toiminta
+        function clickDoor(door) {
+            door.classList.toggle('door-open');
+        }
+
+ function createVirusPopup() {
+    const popup = document.createElement('div');
+    popup.className = 'virus-popup';
+
+    // Satunnainen paikka ruudulla
+    const maxX = Math.max(10, window.innerWidth - 260);
+    const maxY = Math.max(10, window.innerHeight - 180);
+
+    const posX = Math.random() * maxX;
+    const posY = Math.random() * maxY + window.scrollY;
+
+    popup.style.left = posX + 'px';
+    popup.style.top = posY + 'px';
+
+    // Valitaan satunnainen viesti
+    const randomMessage =
+        virusMessages[Math.floor(Math.random() * virusMessages.length)];
+
+    // Popupin sisältö
+    popup.innerHTML = `
+        <div class="virus-header">
+            <span>VIRUS.EXE</span>
+            <button class="virus-close-x" onclick="closeVirus(this)">X</button>
+        </div>
+
+        <div class="virus-body">
+            <div>${randomMessage}</div>
+            <button class="virus-ok-btn" onclick="triggerOk()">OK</button>
+        </div>
+    `;
+
+    document.body.appendChild(popup);
+}
+
+function closeVirus(buttonElement) {
+    const popup = buttonElement.closest('.virus-popup');
+
+    if (popup) {
+        score += 1;
+
+        document.getElementById('score').textContent =
+            "Score: " + score;
+
+        popup.remove();
+    }
+}
+        // OK-napin toiminto: siirtyy pedia.html-sivulle
+function triggerOk() {
+    alert("Hävisit pelin! Vinkki: Älä klikkaa OK.");
+
+    window.location.href = "pedia.html";
+}
+
+        // Aloitetaan virus-nappien ilmestyminen satunnaisesti (6 sekunnin välein)
+        setInterval(createVirusPopup, 1100);
+        
+        // Luodaan ensimmäinen heti alussa
+        setTimeout(createVirusPopup, 300);
+    </script>
+</body>
+</html>

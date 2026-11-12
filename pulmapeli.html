@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sähköverkko</title>
+
+<style>
+:root {
+    --bg-color:#1a1a2e;
+    --grid-color:#16213e;
+    --power-color:#00fff5;
+    --wire-color:#4e5d6c;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    background:var(--bg-color);
+    color:white;
+    font-family:Arial;
+}
+
+h1{color:var(--power-color);margin-bottom:5px;}
+p{margin-top:0;color:#9aa4b2}
+
+#game-container{
+    position:relative;
+    padding:15px;
+    background:var(--grid-color);
+    border-radius:12px;
+}
+
+#grid{
+    display:grid;
+    gap:5px;
+}
+
+.cell{
+    width:70px;
+    height:70px;
+    background:rgba(255,255,255,0.04);
+    border-radius:6px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    cursor:pointer;
+}
+
+.wire-svg{width:100%;height:100%}
+.wire-path{
+    stroke:var(--wire-color);
+    stroke-width:10;
+    fill:none;
+}
+
+.powered .wire-path{stroke:var(--power-color)}
+
+.source .wire-path{stroke:#ffcc00}
+.target .wire-path{stroke:#ff4d4d}
+
+#victory{
+    position:absolute;
+    inset:0;
+    display:none;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    background:rgba(0,0,0,0.7);
+}
+button{
+    padding:10px 15px;
+    border:none;
+    cursor:pointer;
+    background:var(--power-color);
+    font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+<a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+  <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+
+<h1>SÄHKÖVERKKO</h1>
+<p>Klikkaa ruutua kääntääksesi sitä. Yritä saada linja yhdistymään keltaisestä pallosta harmaaseen neliöön.</p>
+<p id="info">Level 1</p>
+
+<div id="game-container">
+<div id="grid"></div>
+
+<div id="victory">
+    <h2>✔ Level läpäisty!</h2>
+    <button onclick="nextLevel()">Seuraava</button>
+</div>
+</div>
+
+<script>
+const DIR = {N:1,E:2,S:4,W:8};
+
+const TYPES = {
+    SOURCE:{pipe:DIR.S},
+    TARGET:{pipe:DIR.N},
+    STRAIGHT:{pipe:DIR.N|DIR.S},
+    CORNER:{pipe:DIR.E|DIR.S}
+};
+
+const LEVELS = [
+    {
+        size:5,
+        map:[
+            ["S",1,0,1,1],
+            [1,1,0,1,0],
+            [0,1,1,1,1],
+            [1,0,1,0,1],
+            [1,0,1,0,"T"]
+        ]
+    },
+    {
+        size:5,
+        map:[
+            ["S",0,1,0,1],
+            [1,1,0,1,0],
+            [0,1,1,0,1],
+            [1,0,1,1,1],
+            [1,1,0,0,"T"]
+        ]
+    },
+    {
+        size:6,
+        map:[
+            ["S",1,0,1,1,0],
+            [1,0,1,0,1,1],
+            [0,1,1,1,0,1],
+            [1,1,0,1,1,0],
+            [0,1,1,0,1,1],
+            [1,0,1,1,0,"T"]
+        ]
+    },
+    {
+        size:6,
+        map:[
+            ["S",0,1,1,0,1],
+            [1,1,0,1,1,0],
+            [0,1,1,0,1,1],
+            [1,0,1,1,0,1],
+            [1,1,0,1,1,0],
+            [1,0,1,0,1,"T"]
+        ]
+    },
+    {
+        size:7,
+        map:[
+            ["S",1,0,1,1,0,1],
+            [1,0,1,0,1,1,0],
+            [0,1,1,1,0,1,1],
+            [1,1,0,1,1,0,1],
+            [0,1,1,0,1,1,0],
+            [1,0,1,1,0,1,1],
+            [1,1,0,1,1,0,"T"]
+        ]
+    }
+];
+
+let level = 0;
+let grid = [];
+
+const gridEl = document.getElementById("grid");
+const victoryEl = document.getElementById("victory");
+const infoEl = document.getElementById("info");
+
+function getSVG(type){
+    if(type===TYPES.SOURCE){
+        return `<svg class="wire-svg" viewBox="0 0 80 80">
+        <path class="wire-path" d="M40 80 L40 40"/>
+        <circle cx="40" cy="25" r="10" fill="#ffcc00"/>
+        </svg>`;
+    }
+
+    if(type===TYPES.TARGET){
+        return `<svg class="wire-svg" viewBox="0 0 80 80">
+        <path class="wire-path" d="M40 0 L40 40"/>
+        <rect x="25" y="35" width="30" height="30" fill="#666"/>
+        </svg>`;
+    }
+
+    if(type===TYPES.STRAIGHT){
+        return `<svg class="wire-svg" viewBox="0 0 80 80">
+        <path class="wire-path" d="M40 0 L40 80"/>
+        </svg>`;
+    }
+
+    return `<svg class="wire-svg" viewBox="0 0 80 80">
+    <path class="wire-path" d="M40 80 A40 40 0 0 0 80 40"/>
+    </svg>`;
+}
+
+function rotate(pipe,rot){
+    let p=pipe;
+    for(let i=0;i<rot;i++){
+        let n=0;
+        if(p&DIR.N)n|=DIR.E;
+        if(p&DIR.E)n|=DIR.S;
+        if(p&DIR.S)n|=DIR.W;
+        if(p&DIR.W)n|=DIR.N;
+        p=n;
+    }
+    return p;
+}
+
+function build(){
+    const L=LEVELS[level];
+    gridEl.innerHTML="";
+    gridEl.style.gridTemplateColumns=`repeat(${L.size},70px)`;
+
+    grid=[];
+
+    for(let r=0;r<L.size;r++){
+        grid[r]=[];
+        for(let c=0;c<L.size;c++){
+
+            let t;
+            if(L.map[r][c]==="S")t=TYPES.SOURCE;
+            else if(L.map[r][c]==="T")t=TYPES.TARGET;
+            else if(L.map[r][c]===0)t=TYPES.CORNER;
+            else t=TYPES.STRAIGHT;
+
+            let cell={
+                r,c,
+                type:t,
+                rot:Math.floor(Math.random()*4),
+                powered:false,
+                dom:null
+            };
+
+            const div=document.createElement("div");
+            div.className="cell";
+            div.innerHTML=getSVG(t);
+
+            div.querySelector("svg").style.transform=
+                `rotate(${cell.rot*90}deg)`;
+
+            div.onclick=()=>{
+                cell.rot=(cell.rot+1)%4;
+                div.querySelector("svg").style.transform=
+                    `rotate(${cell.rot*90}deg)`;
+                update();
+            };
+
+            cell.dom=div;
+            grid[r][c]=cell;
+            gridEl.appendChild(div);
+        }
+    }
+
+    update();
+}
+
+function getConn(cell){
+    return rotate(cell.type.pipe,cell.rot);
+}
+
+function update(){
+
+    for(let r=0;r<grid.length;r++)
+    for(let c=0;c<grid.length;c++)
+        grid[r][c].powered=false;
+
+    const start=grid[0][0];
+    start.powered=true;
+
+    let q=[start];
+
+    while(q.length){
+        let cur=q.shift();
+        let con=getConn(cur);
+
+        let nbs=[
+            [-1,0,DIR.N,DIR.S],
+            [1,0,DIR.S,DIR.N],
+            [0,-1,DIR.W,DIR.E],
+            [0,1,DIR.E,DIR.W]
+        ];
+
+        for(let [dr,dc,a,b] of nbs){
+            let nr=cur.r+dr,nc=cur.c+dc;
+            if(nr<0||nc<0||nr>=grid.length||nc>=grid.length)continue;
+
+            let n=grid[nr][nc];
+            if(n.powered)continue;
+
+            if((con&a)&&(getConn(n)&b)){
+                n.powered=true;
+                q.push(n);
+            }
+        }
+    }
+
+    for(let r=0;r<grid.length;r++)
+    for(let c=0;c<grid.length;c++)
+        grid[r][c].dom.classList.toggle("powered",grid[r][c].powered);
+
+    if(grid[grid.length-1][grid.length-1].powered){
+        victoryEl.style.display="flex";
+    }
+}
+
+function nextLevel(){
+    victoryEl.style.display="none";
+    level++;
+
+    if(level>=LEVELS.length){
+        alert("🎉 Voitit koko pelin! #MAINOS KOKEILE YÖVUOROA #MAINOS");
+        level=0;
+    }
+
+    infoEl.textContent=`Level ${level+1}`;
+    build();
+}
+
+build();
+</script>
+
+</body>
+</html>

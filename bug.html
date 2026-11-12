@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GLITCH SYSTEM</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:black;
+    color:#00ff88;
+    font-family:Consolas, monospace;
+}
+
+#screen{
+    position:absolute;
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    text-align:center;
+}
+
+.glitch{
+    font-size:42px;
+    position:relative;
+    animation:glitch 0.15s infinite;
+    text-shadow:
+      2px 0 red,
+      -2px 0 blue;
+}
+
+.small{
+    margin-top:20px;
+    font-size:20px;
+    opacity:0.8;
+    height:30px;
+}
+
+@keyframes glitch{
+    0%{transform:translate(0);}
+    20%{transform:translate(-3px,3px);}
+    40%{transform:translate(3px,-3px);}
+    60%{transform:translate(-2px,2px);}
+    80%{transform:translate(2px,-2px);}
+    100%{transform:translate(0);}
+}
+
+.scanlines::before{
+    content:"";
+    position:absolute;
+    width:100%;
+    height:100%;
+    background:repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.03),
+        rgba(255,255,255,0.03) 2px,
+        transparent 2px,
+        transparent 4px
+    );
+    pointer-events:none;
+}
+
+#noise{
+    position:absolute;
+    width:100%;
+    height:100%;
+    opacity:0.05;
+    background:
+        repeating-linear-gradient(
+            0deg,
+            rgba(255,255,255,0.03),
+            rgba(255,255,255,0.03) 1px,
+            transparent 1px,
+            transparent 2px
+        );
+    background-size:cover;
+    mix-blend-mode:screen;
+}
+
+.flash{
+    animation:flash 0.1s;
+}
+
+@keyframes flash{
+    from{background:white;}
+    to{background:black;}
+}
+
+#startBtn{
+    margin-top:50px;
+    padding:15px 40px;
+    font-size:22px;
+    background:black;
+    color:#00ff88;
+    border:2px solid #00ff88;
+    cursor:pointer;
+    transition:0.2s;
+    font-family:Consolas, monospace;
+}
+
+#startBtn:hover{
+    background:#00ff88;
+    color:black;
+    box-shadow:0 0 20px #00ff88;
+}
+
+#matrix{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    z-index:-2;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="matrix"></canvas>
+
+<div id="noise"></div>
+
+<div id="screen" class="scanlines">
+
+    <div class="glitch" id="mainText">
+        PLEASE WAIT PATIENTLY<br>
+        FOR THE FAILURE OF THE SYSTEM
+    </div>
+
+    <div class="small" id="subText">
+        connection unstable
+    </div>
+
+    <button id="startBtn">START</button>
+
+</div>
+
+<script>
+const messages = [
+    "ERROR DETECTED",
+    "MEMORY CORRUPTED",
+    "SYSTEM FAILURE IMMINENT",
+    "SIGNAL LOST",
+    "UNKNOWN ENTITY FOUND",
+    "REALITY.EXE HAS STOPPED WORKING",
+	"PLEASE WAIT PATIENTLY FOR THE FAILURE OF THE SYSTEM",
+	"CRITICAL HEAT DETECTED",
+	"FATAL EXCEPTION OCCURRED",
+	"REBOOT LOOP INITIATED",
+	"MEMORY LEAK DETECTED",
+	"HARD DRIVE MELTDOWN",
+	"FIREWALL COLLAPSED",
+	"OVERHEATING: 105°C"
+];
+
+const loadingTexts = [
+    "connection unstable",
+    "decrypting files",
+    "loading corruption",
+    "injecting glitches",
+    "recovering data",
+    "downloading virus"
+];
+
+const mainText = document.getElementById("mainText");
+const subText = document.getElementById("subText");
+
+function randomMessage(){
+
+    mainText.innerHTML =
+        messages[Math.floor(Math.random()*messages.length)];
+
+    currentBaseText =
+        loadingTexts[Math.floor(Math.random()*loadingTexts.length)];
+
+    document.body.classList.add("flash");
+
+    setTimeout(()=>{
+        document.body.classList.remove("flash");
+    },100);
+}
+
+setInterval(randomMessage, 4000);
+
+
+
+// Piste-animaatio
+let dots = 0;
+let currentBaseText = "connection unstable";
+
+setInterval(()=>{
+
+    dots++;
+    if(dots > 3) dots = 0;
+
+    subText.innerHTML =
+        currentBaseText + ".".repeat(dots);
+
+},500);
+
+
+
+// Start-nappi
+document.getElementById("startBtn").onclick = () => {
+    window.location.href = "lukko.html";
+};
+
+
+
+// Glitch-äänet
+function beep(){
+
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "square";
+    osc.frequency.value = Math.random()*1000 + 100;
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    gain.gain.value = 0.02;
+
+    osc.start();
+
+    setTimeout(()=>{
+        osc.stop();
+    },50);
+}
+
+// MATRIX 1 JA 0 TAUSTA
+
+const canvas = document.getElementById("matrix");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const letters = "010101010101";
+const fontSize = 18;
+const columns = canvas.width / fontSize;
+
+const drops = [];
+
+for(let x = 0; x < columns; x++){
+    drops[x] = 1;
+}
+
+function drawMatrix(){
+
+    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle = "#00ff88";
+    ctx.font = fontSize + "px monospace";
+
+    for(let i = 0; i < drops.length; i++){
+
+        const text =
+            letters[Math.floor(Math.random()*letters.length)];
+
+        ctx.fillText(
+            text,
+            i * fontSize,
+            drops[i] * fontSize
+        );
+
+        if(
+            drops[i] * fontSize > canvas.height &&
+            Math.random() > 0.975
+        ){
+            drops[i] = 0;
+        }
+
+        drops[i]++;
+    }
+}
+
+setInterval(drawMatrix, 35);
+
+window.addEventListener("resize", () => {
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+});
+
+let audioEnabled = false;
+
+document.body.addEventListener("click", () => {
+    audioEnabled = true;
+}, { once:true });
+
+setInterval(()=>{
+    if(audioEnabled && Math.random() < 0.4){
+        beep();
+    }
+},800);
+
+</script>
+
+</body>
+</html>

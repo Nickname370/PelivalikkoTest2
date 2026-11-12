@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Kaupunki Saari</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#87ceeb;
+    font-family:Arial,sans-serif;
+}
+
+canvas{
+    display:block;
+}
+
+#info{
+    position:absolute;
+    top:10px;
+    left:10px;
+    background:rgba(0,0,0,0.5);
+    color:white;
+    padding:10px;
+    border-radius:10px;
+    z-index:5;
+}
+
+#gameOver{
+    position:absolute;
+    inset:0;
+    display:none;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    background:rgba(0,0,0,0.85);
+    color:white;
+    z-index:20;
+}
+
+#respawnBtn{
+    padding:15px 30px;
+    font-size:24px;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div id="info">
+WASD = liiku<br>
+SPACE = hyppy / kiipeä taloihin<br>
+Klikkaa peliä aloittaaksesi
+</div>
+
+<div id="gameOver">
+    <h1>GAME OVER</h1>
+    <button id="respawnBtn">Respawn</button>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+
+import * as THREE from 'three';
+
+import { PointerLockControls }
+from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js';
+
+////////////////////////
+// SCENE
+////////////////////////
+
+const scene = new THREE.Scene();
+
+scene.background = new THREE.Color(0x87ceeb);
+
+scene.fog = new THREE.Fog(
+    0x87ceeb,
+    300,
+    3000
+);
+
+const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth/window.innerHeight,
+    0.1,
+    5000
+);
+
+////////////////////////
+// RENDERER
+////////////////////////
+
+const renderer = new THREE.WebGLRenderer({
+    antialias:true
+});
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+renderer.shadowMap.enabled = true;
+
+document.body.appendChild(renderer.domElement);
+
+////////////////////////
+// PLAYER
+////////////////////////
+
+const spawnPoint = new THREE.Vector3(0,100,0);
+
+const player = {
+    height:10,
+    velocityY:0,
+    gravity:0.015,
+    jumpPower:1.35,
+    onGround:true,
+    dead:false,
+	fly:false
+};
+
+camera.position.copy(spawnPoint);
+
+////////////////////////
+// CONTROLS
+////////////////////////
+
+const controls = new PointerLockControls(
+    camera,
+    document.body
+);
+
+document.body.addEventListener('click',()=>{
+
+    if(!player.dead){
+        controls.lock();
+    }
+});
+
+scene.add(controls.getObject());
+
+////////////////////////
+// VALOT
+////////////////////////
+
+const sun = new THREE.DirectionalLight(
+    0xffffff,
+    1.2
+);
+
+sun.position.set(100,300,100);
+
+sun.castShadow = true;
+
+scene.add(sun);
+
+scene.add(
+    new THREE.AmbientLight(
+        0xffffff,
+        0.5
+    )
+);
+
+////////////////////////
+// SAARI
+////////////////////////
+
+const islandRadius = 900;
+
+const island = new THREE.Mesh(
+
+    new THREE.CylinderGeometry(
+        islandRadius,
+        islandRadius + 120,
+        8,
+        64
+    ),
+
+    new THREE.MeshLambertMaterial({
+        color:0x55aa55
+    })
+);
+
+island.position.y = -4;
+
+scene.add(island);
+
+////////////////////////
+// MERI
+////////////////////////
+
+const sea = new THREE.Mesh(
+
+    new THREE.CylinderGeometry(
+        5000,
+        5000,
+        2,
+        64
+    ),
+
+    new THREE.MeshPhongMaterial({
+        color:0x0066cc
+    })
+);
+
+sea.position.y = -8;
+
+scene.add(sea);
+
+////////////////////////
+// JOKI
+////////////////////////
+
+const riverWidth = 80;
+
+const river = new THREE.Mesh(
+
+    new THREE.BoxGeometry(
+        riverWidth,
+        1,
+        1800
+    ),
+
+    new THREE.MeshPhongMaterial({
+        color:0x3399ff,
+        transparent:true,
+        opacity:0.9
+    })
+);
+
+river.position.y = 0.2;
+
+scene.add(river);
+
+////////////////////////
+// SILLAT
+////////////////////////
+
+function createBridge(z){
+
+    const group = new THREE.Group();
+
+    const road = new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+            100,
+            2,
+            20
+        ),
+
+        new THREE.MeshLambertMaterial({
+            color:0x444444
+        })
+    );
+
+    road.position.y = 2;
+
+    group.add(road);
+
+    group.position.z = z;
+
+    scene.add(group);
+}
+
+createBridge(-400);
+createBridge(-200);
+createBridge(0);
+createBridge(200);
+createBridge(400);
+
+////////////////////////
+// TIET
+////////////////////////
+
+for(let x=-700;x<=700;x+=70){
+
+    if(Math.abs(x)<40) continue;
+
+    const road = new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+            20,
+            0.2,
+            1800
+        ),
+
+        new THREE.MeshLambertMaterial({
+            color:0x222222
+        })
+    );
+
+    road.position.set(x,0.05,0);
+
+    scene.add(road);
+}
+
+////////////////////////
+// TALOT
+////////////////////////
+
+const buildings = [];
+
+function createBuilding(x,z){
+
+    const w = 10 + Math.random()*20;
+    const h = 20 + Math.random()*600;
+    const d = 10 + Math.random()*20;
+
+    const building = new THREE.Mesh(
+
+        new THREE.BoxGeometry(w,h,d),
+
+        new THREE.MeshLambertMaterial({
+
+            color:new THREE.Color(
+                0.3 + Math.random()*0.5,
+                0.3 + Math.random()*0.5,
+                0.3 + Math.random()*0.5
+            )
+        })
+    );
+
+    building.position.set(
+        x,
+        h/2,
+        z
+    );
+
+    building.castShadow = true;
+    building.receiveShadow = true;
+
+    scene.add(building);
+
+    buildings.push({
+        mesh:building,
+        width:w,
+        depth:d
+    });
+}
+
+////////////////////////
+// GENEROI TALOT
+////////////////////////
+
+for(let x=-700;x<=700;x+=35){
+
+    for(let z=-700;z<=700;z+=35){
+
+        // EI JOEN PÄÄLLE
+        if(Math.abs(x)<55) continue;
+
+        ////////////////////////
+        // EI TEIDEN PÄÄLLE
+        ////////////////////////
+
+        let onRoad = false;
+
+        for(let roadX=-700;roadX<=700;roadX+=70){
+
+            if(Math.abs(roadX)<40) continue;
+
+            if(Math.abs(x - roadX) < 18){
+
+                onRoad = true;
+                break;
+            }
+        }
+
+        if(onRoad) continue;
+
+        ////////////////////////
+        // SAAREN SISÄLLÄ
+        ////////////////////////
+
+        const dist = Math.sqrt(x*x + z*z);
+
+        if(dist > islandRadius - 100) continue;
+
+        ////////////////////////
+        // RANDOM
+        ////////////////////////
+
+        if(Math.random()>0.15){
+
+            createBuilding(x,z);
+        }
+    }
+}
+
+////////////////////////
+// NÄPPÄIMET
+////////////////////////
+
+const keys = {};
+
+document.addEventListener('keydown',(e)=>{
+
+    keys[e.code] = true;
+
+    if(e.code === 'Space'){
+
+        // hyppy
+        if(player.onGround){
+
+            player.velocityY = player.jumpPower;
+            player.onGround = false;
+        }
+
+        // lentotila päälle
+        else{
+            player.fly = true;
+        }
+    }
+});
+
+document.addEventListener('keyup',(e)=>{
+
+    keys[e.code] = false;
+
+    if(e.code === 'Space'){
+        player.fly = false;
+    }
+});
+////////////////////////
+// GAME OVER
+////////////////////////
+
+const gameOver =
+    document.getElementById('gameOver');
+
+const respawnBtn =
+    document.getElementById('respawnBtn');
+
+function die(){
+
+    if(player.dead) return;
+
+    player.dead = true;
+
+    controls.unlock();
+
+    gameOver.style.display = 'flex';
+}
+
+function respawn(){
+
+    player.dead = false;
+
+    camera.position.copy(spawnPoint);
+
+    player.velocityY = 0;
+
+    player.onGround = true;
+
+    gameOver.style.display = 'none';
+
+    controls.lock();
+}
+
+respawnBtn.addEventListener(
+    'click',
+    respawn
+);
+
+////////////////////////
+// PLAYER UPDATE
+////////////////////////
+
+function updatePlayer(){
+
+    if(player.dead) return;
+
+    const speed = 0.8;
+
+    const oldX = camera.position.x;
+    const oldZ = camera.position.z;
+
+    ////////////////////////
+    // LIIKKUMINEN
+    ////////////////////////
+
+    if(keys['KeyW'])
+        controls.moveForward(speed);
+
+    if(keys['KeyS'])
+        controls.moveForward(-speed);
+
+    if(keys['KeyA'])
+        controls.moveRight(-speed);
+
+    if(keys['KeyD'])
+        controls.moveRight(speed);
+
+    ////////////////////////
+    // GRAVITY
+    ////////////////////////
+
+if(player.fly){
+
+    // lento = ei painovoimaa
+    player.velocityY = 0;
+
+    if(keys['Space']) camera.position.y += 1.2; // ylös
+    else camera.position.y += 0; // hover
+
+}else{
+
+    // normaali gravity
+    player.velocityY -= player.gravity;
+    camera.position.y += player.velocityY;
+}
+
+    let groundHeight = player.height;
+
+    ////////////////////////
+    // SILTA
+    ////////////////////////
+
+    let onBridge = false;
+
+    const bridges = [
+        -400,
+        -200,
+        0,
+        200,
+        400
+    ];
+
+    for(let z of bridges){
+
+        if(
+            Math.abs(camera.position.z - z) < 12 &&
+            Math.abs(camera.position.x) < 50
+        ){
+            onBridge = true;
+            groundHeight = 14;
+        }
+    }
+
+    ////////////////////////
+    // JOKI
+    ////////////////////////
+
+    const inRiver =
+        Math.abs(camera.position.x)
+        < riverWidth/2;
+
+    if(inRiver && !onBridge){
+
+        groundHeight = -1000;
+    }
+
+    if(
+        inRiver &&
+        !onBridge &&
+        camera.position.y < -15
+    ){
+        die();
+    }
+
+    ////////////////////////
+    // MERI
+    ////////////////////////
+
+    const dist = Math.sqrt(
+        camera.position.x**2 +
+        camera.position.z**2
+    );
+
+    if(dist > islandRadius){
+
+        groundHeight = -1000;
+
+        if(camera.position.y < -15){
+
+            die();
+        }
+    }
+
+    ////////////////////////
+    // MAA TÖRMÄYS
+    ////////////////////////
+
+    if(camera.position.y <= groundHeight){
+
+        camera.position.y = groundHeight;
+
+        player.velocityY = 0;
+
+        player.onGround = true;
+
+    }else{
+
+        player.onGround = false;
+    }
+
+    ////////////////////////
+    // TALO HITBOX + KIIPEÄMINEN
+    ////////////////////////
+
+    for(let b of buildings){
+
+        const bx = b.mesh.position.x;
+        const bz = b.mesh.position.z;
+
+        const hw = b.width/2 + 4;
+        const hd = b.depth/2 + 4;
+
+        const inside =
+            camera.position.x > bx - hw &&
+            camera.position.x < bx + hw &&
+            camera.position.z > bz - hd &&
+            camera.position.z < bz + hd;
+
+        if(inside){
+
+            const roofHeight =
+                b.mesh.position.y +
+                b.mesh.geometry.parameters.height/2;
+
+            ////////////////////////
+            // KIIPEÄ TALON PÄÄLLE
+            ////////////////////////
+
+            // KIIPEÄ TALON PÄÄLLE (vain alhaalta tullessa)
+
+const box = new THREE.Box3().setFromObject(b.mesh);
+
+const buildingRoofHeight = box.max.y;
+
+const inside =
+    camera.position.x > bx - hw &&
+    camera.position.x < bx + hw &&
+    camera.position.z > bz - hd &&
+    camera.position.z < bz + hd;
+
+if(inside){
+
+    // KIIPEÄ VAIN ALHAALTA
+    if(
+        camera.position.y < buildingRoofHeight + 5 &&
+        camera.position.y > buildingRoofHeight - 30 &&
+        player.velocityY <= 0
+    ){
+        camera.position.y = buildingRoofHeight + player.height;
+        player.velocityY = 0;
+        player.onGround = true;
+
+    }else{
+        camera.position.x = oldX;
+        camera.position.z = oldZ;
+    }
+}
+
+                ////////////////////////
+                // EI VOI MENNÄ LÄPI
+                ////////////////////////
+
+                camera.position.x = oldX;
+                camera.position.z = oldZ;
+            }
+        }
+    }
+
+
+////////////////////////
+// LOOP
+////////////////////////
+
+function animate(){
+
+    requestAnimationFrame(animate);
+
+    updatePlayer();
+
+    renderer.render(scene,camera);
+}
+
+animate();
+
+////////////////////////
+// RESIZE
+////////////////////////
+
+window.addEventListener(
+    'resize',
+    ()=>{
+
+        camera.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+    }
+);
+
+</script>
+
+</body>
+</html>

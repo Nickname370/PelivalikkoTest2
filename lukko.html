@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Pelivalikko projektit</title>
+<style>
+body {
+  font-family: Arial;  
+  text-align: center;
+  background: #222;
+  color: white;
+}
+button {
+  padding: 10px 15px;
+  margin-top: 20px;
+}
+
+button:hover {
+  transform: scale(1.1);
+  cursor: pointer;
+  transition: 0.2s;
+}
+</style>
+</head>
+
+<body>
+
+<p>Tiesitkö että joissain peleissä on huijauskoodeja?</p>
+<a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank">Pelivalikon salaisuudet</a>
+<p>Yläpuolella linkki Youtube videoon jossa näytetään kaikki huijauskoodit.</p>
+
+<script>
+let correctCode = "156178"; 
+
+let userCode = prompt("Syötä salainen koodi:");
+
+if(userCode === null || userCode !== correctCode){
+  alert("Pääsy estetty! PS. Kannattaa kokeilla Geometria Neliöitä");
+  window.location.href = "index.html";
+}
+</script>
+
+  <a href="Salainen.html">
+    <button style="transition: all 0.3s ease; position:absolute; top:300px; right:550px; padding:10px 14px; font-size:16px; cursor:pointer;">Projekti Sivulle ➡️</button>
+  </a>
+
+</body>
+</html>

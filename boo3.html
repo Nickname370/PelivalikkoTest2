@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yövuoro - Yö Ⅲ</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:black;
+    font-family:Arial,sans-serif;
+    color:white;
+}
+
+#scene{
+    width:100vw;
+    height:100vh;
+    position:relative;
+    transition:0.3s;
+}
+
+.arrow{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    width:80px;
+    height:120px;
+    font-size:50px;
+    background:rgba(0,0,0,0.4);
+    color:white;
+    border:none;
+    cursor:pointer;
+}
+
+#leftBtn{
+    left:0;
+}
+
+#rightBtn{
+    right:0;
+}
+
+#viewName{
+    position:absolute;
+    top:20px;
+    width:100%;
+    text-align:center;
+    font-size:30px;
+}
+
+#computer{
+    position:absolute;
+    left:50%;
+    top:55%;
+    transform:translate(-50%,-50%);
+    width:350px;
+    height:220px;
+    background:#111;
+    border:8px solid #555;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+}
+
+#workBtn{
+    padding:15px 30px;
+    font-size:22px;
+    cursor:pointer;
+}
+
+#progress{
+    margin-top:10px;
+    font-size:24px;
+}
+
+#monster{
+    position:absolute;
+    font-size:120px;
+    display:none;
+}
+
+#message{
+    position:absolute;
+    bottom:20px;
+    width:100%;
+    text-align:center;
+    font-size:24px;
+}
+
+#gameOver{
+    position:absolute;
+    inset:0;
+    background:black;
+    display:none;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    z-index:10;
+}
+
+h1{
+    color:red;
+    font-size:70px;
+}
+#battery{
+    position:absolute;
+    top:60px;
+    right:20px;
+    font-size:24px;
+}
+</style>
+</head>
+<body>
+
+<div id="scene">
+
+<div id="viewName">Tietokone</div>
+
+<button class="arrow" id="leftBtn">◀</button>
+<button class="arrow" id="rightBtn">▶</button>
+
+<div id="computer">
+    <h2>Työasema</h2>
+    <button id="workBtn">Tee töitä</button>
+    <div id="progress">0%</div>
+</div>
+
+<div id="monster">👹</div>
+
+<div id="message">
+Valmis työ: 0%
+</div>
+
+<div id="gameOver">
+    <h1>HIRVIÖ SAI SINUT</h1>
+	<p>Olit liian hidas...</p>
+	<a href="boo1.html">
+    <button style="position:absolute; top:450px; right:520px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin aloitusvalikkoon</button>
+	</a>
+    <button onclick="location.reload()">Aloita uudelleen</button>
+</div>
+
+<div id="battery">
+Patteri: 100%
+</div>
+
+<a href="boo1.html">
+  <button style="position:absolute; top:10px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+
+</div>
+
+<script>
+let view = 1;
+let work = 0;
+let gameEnded = false;
+let attackTimer = null;
+let monsterAttackTime = 4000;
+
+const scene = document.getElementById("scene");
+const computer = document.getElementById("computer");
+const monster = document.getElementById("monster");
+const progress = document.getElementById("progress");
+const message = document.getElementById("message");
+
+const leftBtn = document.getElementById("leftBtn");
+const rightBtn = document.getElementById("rightBtn");
+const workBtn = document.getElementById("workBtn");
+const batteryText = document.getElementById("battery");
+
+let battery = 100;
+let flashlightOn = false;
+
+let monsterVisible = false;
+let monsterSide = "left";
+
+function gameOver(){
+    gameEnded = true;
+    document.getElementById("gameOver").style.display = "flex";
+}
+
+function playSpawnSound(){
+
+    const audio = new AudioContext();
+
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+
+    osc.connect(gain);
+    gain.connect(audio.destination);
+
+    osc.type = "sawtooth";
+    osc.frequency.value = 120;
+
+    gain.gain.value = 0.15;
+
+    osc.start();
+
+    setTimeout(()=>{
+        osc.stop();
+        audio.close();
+    },300);
+}
+
+function updateView(){
+
+    computer.style.display = "none";
+    monster.style.display = "none";
+
+    switch(view){
+
+        case 0:
+            document.getElementById("viewName").textContent =
+            "Ventti";
+            scene.style.background =
+            "linear-gradient(to right,#111,#333,#111)";
+            break;
+			
+		case 1:
+			document.getElementById("viewName").textContent =
+			"Työasema";
+			scene.style.background =
+			"linear-gradient(#222,#111)";
+
+			computer.style.display = "flex";
+			break;
+
+
+
+        case 2:
+            document.getElementById("viewName").textContent =
+            "Kaappi";
+            scene.style.background =
+            "linear-gradient(to left,#111,#333,#111)";
+            break;
+
+        case 3:
+            document.getElementById("viewName").textContent =
+            "Katto";
+            scene.style.background =
+            "linear-gradient(#000,#444)";
+            break;
+			
+		case 4:
+            document.getElementById("viewName").textContent =
+            "Ovi";
+            scene.style.background =
+            "linear-gradient(#333,#111)";
+            break;
+    }
+
+
+if(monsterVisible){
+
+    const visibleHere =
+        (monsterSide==="ventti" && view===0) ||
+        (monsterSide==="kaappi" && view===2) ||
+        (monsterSide==="katto" && view===3) ||
+        (monsterSide==="ovi" && view===4);
+
+    if(visibleHere){
+
+        monster.style.display = "block";
+
+        if(monsterSide==="ventti"){
+            monster.style.left = "100px";
+            monster.style.right = "auto";
+            monster.style.top = "50%";
+        }
+
+        if(monsterSide==="kaappi"){
+            monster.style.right = "100px";
+            monster.style.left = "auto";
+            monster.style.top = "50%";
+        }
+
+        if(monsterSide==="katto"){
+            monster.style.left = "50%";
+            monster.style.top = "80px";
+        }
+
+        if(monsterSide==="ovi"){
+            monster.style.left = "50%";
+            monster.style.top = "50%";
+        }
+
+    }else{
+        monster.style.display = "none";
+    }
+}
+}
+
+function spawnMonster(){
+
+    if(gameEnded) return;
+
+    const places = [
+        "ventti",
+        "kaappi",
+        "katto",
+        "ovi"
+    ];
+	
+	playSpawnSound();
+
+    monsterSide =
+        places[Math.floor(Math.random()*places.length)];
+
+    monsterVisible = true;
+
+    updateView();
+
+    clearTimeout(attackTimer);
+
+    attackTimer = setTimeout(()=>{
+
+        if(monsterVisible && !gameEnded){
+            gameOver();
+        }
+
+    }, monsterAttackTime);
+}
+
+document.addEventListener("keydown",(e)=>{
+    if(e.code === "Space" && battery > 0){
+        flashlightOn = true;
+    }
+});
+
+document.addEventListener("keyup",(e)=>{
+    if(e.code === "Space"){
+        flashlightOn = false;
+    }
+});
+
+document.addEventListener("keydown",(e)=>{
+
+    if(e.key === "a"){
+
+        view--;
+
+        if(view < 0){
+            view = 4;
+        }
+
+        updateView();
+    }
+
+    if(e.key === "d"){
+
+        view++;
+		
+		if(view > 4){
+		view = 0;
+		}
+
+        updateView();
+    }
+
+});
+
+leftBtn.onclick = ()=>{
+    view--;
+
+    if(view < 0){
+        view = 4;
+    }
+
+    updateView();
+};
+
+rightBtn.onclick = ()=>{
+    view++;
+
+    if(view > 4){
+        view = 0;
+    }
+
+    updateView();
+};
+
+workBtn.onclick = ()=>{
+
+    if(gameEnded) return;
+
+    work += 2;
+
+    if(work > 100){
+        work = 100;
+    }
+
+    progress.textContent = work + "%";
+    message.textContent = "Valmis työ: " + work + "%";
+
+    if(work >= 100){
+        alert("Voitit! #MAINOS KOKEILE ZORAXIN TÄHTEÄ #MAINOS");
+        location.reload();
+    }
+};
+
+setInterval(()=>{
+
+    if(gameEnded) return;
+
+    if(flashlightOn && battery > 0){
+
+        battery -= 4;
+
+        if(battery < 0){
+            battery = 0;
+        }
+
+        batteryText.textContent =
+        "Patteri: " + battery + "%";
+
+        scene.style.filter = "brightness(1.5)";
+    }
+    else{
+        scene.style.filter = "brightness(1)";
+    }
+
+},45);
+
+setInterval(()=>{
+
+    if(gameEnded) return;
+    if(!monsterVisible) return;
+
+const lookingAtMonster =
+    (monsterSide==="ventti" && view===0) ||
+    (monsterSide==="ovi" && view===4) ||
+    (monsterSide==="kaappi" && view===2) ||
+    (monsterSide==="katto" && view===3);
+
+if(flashlightOn && lookingAtMonster){
+
+    monsterVisible = false;
+
+    clearTimeout(attackTimer);
+
+    updateView();
+}
+
+},50);
+
+setInterval(()=>{
+
+    if(gameEnded) return;
+
+    if(!monsterVisible){
+
+        if(Math.random() < 0.6){
+            spawnMonster();
+        }
+
+    }
+
+},3500);
+
+updateView();
+</script>
+
+</body>
+</html>

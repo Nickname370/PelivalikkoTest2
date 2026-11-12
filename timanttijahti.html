@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zoraxin Tähti</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#070b1f;
+    color:white;
+    text-align:center;
+}
+
+h1{
+    margin:10px;
+    color:#4de3ff;
+}
+
+#topbar{
+    display:flex;
+    justify-content:center;
+    gap:15px;
+    flex-wrap:wrap;
+    padding:10px;
+}
+
+button{
+    padding:10px 16px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+#rollBtn{
+    background:#4de3ff;
+}
+
+#searchBtn{
+    background:#ffd54a;
+}
+
+#searchBtn:disabled{
+    opacity:0.5;
+}
+
+#game{
+    width:1000px;
+    max-width:95vw;
+    height:700px;
+    margin:0 auto 20px;
+    position:relative;
+}
+
+#lava{
+    position:absolute;
+    inset:0;
+    background:
+    radial-gradient(circle at center,#5a2f12 0%,#3b1b0c 35%,#ff4b00 70%,#ff9f00 100%);
+    border-radius:30px;
+}
+
+#continent{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    width:820px;
+    height:560px;
+    background:#355c2e;
+    border-radius:45% 55% 40% 60%;
+    box-shadow:0 0 30px rgba(0,0,0,0.5) inset;
+}
+
+svg{
+    position:absolute;
+    inset:0;
+    z-index:2;
+}
+
+.node{
+    position:absolute;
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    border:3px solid white;
+    background:#8c8c8c;
+    z-index:3;
+    transform:translate(-50%,-50%);
+}
+
+.start{
+    background:#1bb34a;
+}
+
+.player{
+    box-shadow:0 0 15px cyan;
+}
+
+.node-label{
+    position:absolute;
+    font-size:12px;
+    width:100px;
+    margin-left:-50px;
+    margin-top:28px;
+    z-index:4;
+}
+
+.moveable{
+    outline:4px solid yellow;
+    cursor:pointer;
+}
+
+#log{
+    width:1000px;
+    max-width:95vw;
+    margin:auto;
+    background:#101733;
+    padding:12px;
+    border-radius:12px;
+    min-height:90px;
+    text-align:left;
+}
+
+#dice{
+    font-size:28px;
+    font-weight:bold;
+    color:#ffd54a;
+}
+
+.bot {
+    background:#ff3030 !important;
+    box-shadow:0 0 20px #ff3030;
+}
+
+.player {
+    background:#20e0ff !important;
+    box-shadow:0 0 20px #20e0ff;
+}
+
+.moveable {
+    background:#ffd700 !important;
+    box-shadow:0 0 20px #ffff00;
+    cursor:pointer;
+    transform:translate(-50%,-50%) scale(1.2);
+}
+</style>
+</head>
+<body>
+
+<h1>💎 Zoraxin Tähti</h1>
+
+<p>Heitä noppaa, tutki sijainti ja löydä Zoraxin Tähti ennen Robottia!</p>
+
+<div id="topbar">
+    <button id="rollBtn">🎲 Heitä noppaa</button>
+    <button id="searchBtn" disabled>🔍 Tutki sijainti</button>
+    <div id="dice">Noppa: -</div>
+</div>
+
+<a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+  <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+
+<div id="game">
+    <div id="lava"></div>
+    <div id="continent"></div>
+
+    <svg id="roads"></svg>
+</div>
+
+<div id="log">
+Tervetuloa planeetalle Zorax. Etsi legendaarinen kosminen timantti.
+</div>
+
+<script>
+
+const places = [
+    { id:0, name:"Avaruussatama", x:120, y:350, start:true },
+    { id:1, name:"Punainen Kylä", x:220, y:220 },
+    { id:2, name:"Kraatteri", x:220, y:480 },
+    { id:3, name:"Temppeli", x:360, y:140 },
+    { id:4, name:"Kristalliluola", x:360, y:350 },
+    { id:5, name:"Jääasema", x:360, y:560 },
+    { id:6, name:"Meteoriasema", x:520, y:230 },
+    { id:7, name:"Myrskykaupunki", x:520, y:450 },
+    { id:8, name:"Muinaisportti", x:660, y:120 },
+    { id:9, name:"Kultasatama", x:660, y:330 },
+    { id:10, name:"Timanttikuilu", x:660, y:560 },
+    { id:11, name:"Tähtitorni", x:820, y:230 },
+    { id:12, name:"Kadonnut Kaupunki", x:820, y:470 }
+];
+
+const roads = [
+    [0,1], [0,2],
+    [1,3], [1,4],
+    [2,4], [2,5],
+    [3,6],
+    [4,6], [4,7],
+    [5,7],
+    [6,8], [6,9],
+    [7,9], [7,10],
+    [8,11],
+    [9,11], [9,12],
+    [10,12]
+];
+
+const game = document.getElementById("game");
+const roadSvg = document.getElementById("roads");
+const logBox = document.getElementById("log");
+const rollBtn = document.getElementById("rollBtn");
+const searchBtn = document.getElementById("searchBtn");
+const diceBox = document.getElementById("dice");
+
+let current = 0;
+let botPosition = 12;
+
+let diceValue = 0;
+let canSearch = false;
+let playerTurn = true;
+let gameOver = false;
+
+const searched = new Set();
+
+const treasureLocation =
+    Math.floor(Math.random() * (places.length - 1)) + 1;
+
+
+// ===============================
+// VIESTILOKI
+// ===============================
+
+function log(msg) {
+    logBox.innerHTML =
+        msg + "<br><br>" + logBox.innerHTML;
+}
+
+
+// ===============================
+// KARTAN LUONTI
+// ===============================
+
+function createMap() {
+
+    roads.forEach(r => {
+
+        const a = places[r[0]];
+        const b = places[r[1]];
+
+        const line =
+            document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "line"
+            );
+
+        line.setAttribute("x1", a.x);
+        line.setAttribute("y1", a.y);
+
+        line.setAttribute("x2", b.x);
+        line.setAttribute("y2", b.y);
+
+        // SELKEÄT TIET
+        line.setAttribute("stroke", "#fff4b0");
+        line.setAttribute("stroke-width", "12");
+        line.setAttribute("stroke-linecap", "round");
+
+        // Tumma reunus tien alle
+        const shadow =
+            document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "line"
+            );
+
+        shadow.setAttribute("x1", a.x);
+        shadow.setAttribute("y1", a.y);
+        shadow.setAttribute("x2", b.x);
+        shadow.setAttribute("y2", b.y);
+
+        shadow.setAttribute("stroke", "#382b18");
+        shadow.setAttribute("stroke-width", "18");
+        shadow.setAttribute("stroke-linecap", "round");
+
+        roadSvg.appendChild(shadow);
+        roadSvg.appendChild(line);
+    });
+
+
+    places.forEach(p => {
+
+        const node = document.createElement("div");
+
+        node.className = "node";
+
+        if (p.start) {
+            node.classList.add("start");
+        }
+
+        node.id = "node-" + p.id;
+
+        node.style.left = p.x + "px";
+        node.style.top = p.y + "px";
+
+        game.appendChild(node);
+
+
+        const label =
+            document.createElement("div");
+
+        label.className = "node-label";
+
+        label.style.left = p.x + "px";
+        label.style.top = p.y + "px";
+
+        label.textContent = p.name;
+
+        game.appendChild(label);
+
+
+        node.addEventListener("click", () => {
+            moveTo(p.id);
+        });
+    });
+
+    updatePieces();
+}
+
+
+// ===============================
+// PELAAJIEN NAPIT
+// ===============================
+
+function updatePieces() {
+
+    document
+        .querySelectorAll(".node")
+        .forEach(n => {
+
+            n.classList.remove("player");
+            n.classList.remove("bot");
+        });
+
+
+    const playerNode =
+        document.getElementById(
+            "node-" + current
+        );
+
+    const botNode =
+        document.getElementById(
+            "node-" + botPosition
+        );
+
+
+    if (playerNode) {
+        playerNode.classList.add("player");
+    }
+
+    if (botNode) {
+        botNode.classList.add("bot");
+    }
+}
+
+
+// ===============================
+// NAAPURIT
+// ===============================
+
+function neighbors(id) {
+
+    const arr = [];
+
+    roads.forEach(r => {
+
+        if (r[0] === id) {
+            arr.push(r[1]);
+        }
+
+        if (r[1] === id) {
+            arr.push(r[0]);
+        }
+    });
+
+    return arr;
+}
+
+
+// ===============================
+// KUINKA MONEN ASKELEEN PÄÄSSÄ?
+// ===============================
+
+function reachable(start, steps) {
+
+    let frontier = [start];
+
+    for (let i = 0; i < steps; i++) {
+
+        const next = [];
+
+        frontier.forEach(node => {
+
+            neighbors(node).forEach(n => {
+                next.push(n);
+            });
+
+        });
+
+        frontier = [...new Set(next)];
+    }
+
+    return frontier.filter(
+        n => n !== start
+    );
+}
+
+
+// ===============================
+// POISTA KOROSTUKSET
+// ===============================
+
+function clearHighlights() {
+
+    document
+        .querySelectorAll(".node")
+        .forEach(n => {
+
+            n.classList.remove("moveable");
+        });
+}
+
+
+// ===============================
+// PELAAJAN NOPPA
+// ===============================
+
+function rollDice() {
+
+    if (gameOver) return;
+
+    if (!playerTurn) return;
+
+    if (diceValue !== 0) return;
+
+
+    diceValue =
+        Math.floor(Math.random() * 6) + 1;
+
+
+    diceBox.textContent =
+        "🎲 Noppa: " + diceValue;
+
+
+    clearHighlights();
+
+
+    const targets =
+        reachable(
+            current,
+            diceValue
+        );
+
+
+    if (targets.length === 0) {
+
+        log(
+            "Et pääse tällä nopanluvulla mihinkään."
+        );
+
+        diceValue = 0;
+
+        setTimeout(botTurn, 1000);
+
+        return;
+    }
+
+
+    targets.forEach(id => {
+
+        const node =
+            document.getElementById(
+                "node-" + id
+            );
+
+        if (node) {
+            node.classList.add("moveable");
+        }
+    });
+
+
+    log(
+        "🎲 Heitit " +
+        diceValue +
+        ". Valitse keltainen kohde. " +
+        "Liikut vain teitä pitkin."
+    );
+}
+
+
+// ===============================
+// PELAAJAN LIIKKUMINEN
+// ===============================
+
+function moveTo(target) {
+
+    if (gameOver) return;
+
+    if (!playerTurn) return;
+
+    if (diceValue === 0) return;
+
+
+    const legal =
+        reachable(
+            current,
+            diceValue
+        );
+
+
+    if (!legal.includes(target)) {
+
+        log(
+            "❌ Et voi liikkua sinne. " +
+            "Valitse keltaisena näkyvä kohde."
+        );
+
+        return;
+    }
+
+
+    current = target;
+
+
+    updatePieces();
+
+    clearHighlights();
+
+
+    log(
+        "🔵 Saavuit paikkaan: " +
+        places[target].name
+    );
+
+
+    diceValue = 0;
+
+    diceBox.textContent =
+        "🎲 Noppa: -";
+
+
+    canSearch = true;
+
+    searchBtn.disabled = false;
+
+    playerTurn = false;
+
+    rollBtn.disabled = true;
+
+
+    // Pelaajalle pieni hetki tutkia paikka
+    log(
+        "🔍 Voit tutkia paikan tai jatkaa bottivuoroon."
+    );
+}
+
+
+// ===============================
+// PAIKAN TUTKIMINEN
+// ===============================
+
+function searchLocation() {
+
+    if (gameOver) return;
+
+    if (!canSearch) return;
+
+
+    canSearch = false;
+
+    searchBtn.disabled = true;
+
+
+    if (searched.has(current)) {
+
+        log(
+            "Tämä paikka on jo tutkittu."
+        );
+
+        finishPlayerTurn();
+
+        return;
+    }
+
+
+    searched.add(current);
+
+
+    // TIMANTTI
+    if (current === treasureLocation) {
+
+        winGame("🔵 Sinä löysit kosmisen timantin!");
+
+        return;
+    }
+
+
+    const events = [
+
+        "Tyhjä paikka... mitään kiinnostavaa ei löytynyt.",
+
+        "🤖 Löysit vanhan tutkimusrobotin.",
+
+        "💠 Löysit energiakiteitä.",
+
+        "👾 Avaruusrosvot ovat käyneet täällä.",
+
+        "🗺️ Löysit palan muinaista karttaa.",
+
+        "🚀 Löysit hylätyn tutkimusaseman.",
+
+        "🪐 Paikan seinään on kirjoitettu outoja symboleja.",
+
+        "⚡ Paikasta löytyi harvinaista avaruusenergiaa."
+    ];
+
+
+    const event =
+        events[
+            Math.floor(
+                Math.random() * events.length
+            )
+        ];
+
+
+    log(
+        "🔎 " +
+        places[current].name +
+        ": " +
+        event
+    );
+
+
+    finishPlayerTurn();
+}
+
+
+// ===============================
+// PELAAJAN VUORO PÄÄTTYY
+// ===============================
+
+function finishPlayerTurn() {
+
+    playerTurn = false;
+
+    rollBtn.disabled = true;
+
+    setTimeout(botTurn, 1200);
+}
+
+
+// ===============================
+// BOTIN VUORO
+// ===============================
+
+function botTurn() {
+
+    if (gameOver) return;
+
+
+    clearHighlights();
+
+
+    const roll =
+        Math.floor(Math.random() * 6) + 1;
+
+
+    const targets =
+        reachable(
+            botPosition,
+            roll
+        );
+
+
+    if (targets.length === 0) {
+
+        log(
+            "🤖 Botti heitti " +
+            roll +
+            ", mutta ei pystynyt liikkumaan."
+        );
+
+        finishBotTurn();
+
+        return;
+    }
+
+
+    // Botti yrittää joskus valita timanttia
+    let move;
+
+
+    if (
+        targets.includes(treasureLocation) &&
+        Math.random() < 0.65
+    ) {
+
+        move = treasureLocation;
+
+    } else {
+
+        move =
+            targets[
+                Math.floor(
+                    Math.random() *
+                    targets.length
+                )
+            ];
+    }
+
+
+    botPosition = move;
+
+
+    updatePieces();
+
+
+    log(
+        "🤖 Botti heitti 🎲 " +
+        roll +
+        " ja siirtyi paikkaan " +
+        places[move].name
+    );
+
+
+    // BOTTI LÖYTÄÄ TIMANTIN
+    if (
+        botPosition === treasureLocation
+    ) {
+
+        winGame(
+            "🤖 Botti löysi kosmisen timantin ja voitti!"
+        );
+
+        return;
+    }
+
+
+    // Botin tutkiminen
+    setTimeout(() => {
+
+        if (gameOver) return;
+
+        botSearch();
+
+    }, 700);
+}
+
+
+// ===============================
+// BOTIN TUTKIMINEN
+// ===============================
+
+function botSearch() {
+
+    if (gameOver) return;
+
+
+    if (
+        !searched.has(botPosition)
+    ) {
+
+        searched.add(botPosition);
+
+
+        if (
+            botPosition ===
+            treasureLocation
+        ) {
+
+            winGame(
+                "🤖 Botti löysi kosmisen timantin!"
+            );
+
+            return;
+        }
+
+
+        log(
+            "🤖 Botti tutki paikan " +
+            places[botPosition].name +
+            ", mutta ei löytänyt timanttia."
+        );
+    }
+
+
+    finishBotTurn();
+}
+
+
+// ===============================
+// BOTIN VUORO LOPPUU
+// ===============================
+
+function finishBotTurn() {
+
+    if (gameOver) return;
+
+
+    playerTurn = true;
+
+    rollBtn.disabled = false;
+
+    log(
+        "🔵 Sinun vuorosi! Heitä noppaa."
+    );
+}
+
+
+// ===============================
+// VOITTO
+// ===============================
+
+function winGame(message) {
+
+    gameOver = true;
+
+    clearHighlights();
+
+
+    rollBtn.disabled = true;
+    searchBtn.disabled = true;
+
+
+    log(
+        "🏆 " +
+        message +
+        "<br><br>" +
+        "💎 Zoraxin Tähden jahti päättyi!"
+    );
+
+
+    setTimeout(() => {
+
+        alert(
+            message +
+            "\n\n Zoraxin Tähden jahti päättyi!"
+        );
+
+    }, 300);
+}
+
+
+// ===============================
+// NAPIT
+// ===============================
+
+rollBtn.addEventListener(
+    "click",
+    rollDice
+);
+
+
+searchBtn.addEventListener(
+    "click",
+    searchLocation
+);
+
+
+// ===============================
+// PELI ALKAA
+// ===============================
+
+createMap();
+
+updatePieces();
+
+log(
+    "🚀 Olet Avaruussatamassa. " +
+    "Sinä olet 🔵 ja botti on 🔴."
+);
+
+log(
+    "💎 Jossakin planeetalla on kosminen timantti. " +
+    "Kumpi löytää sen ensin?"
+);
+
+</script>
+
+</body>
+</html>
+

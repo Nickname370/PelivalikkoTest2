@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<title>Zombit Hyökkää</title>
+
+<style>
+body{
+    margin:0;
+    background:#87ceeb;
+    font-family:Arial;
+    overflow:hidden;
+}
+
+#topbar{
+    height:80px;
+    background:#5c913b;
+    display:flex;
+    align-items:center;
+    padding:10px;
+    color:white;
+    font-size:22px;
+    gap:15px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.3);
+}
+
+#sunCount,#scoreBox,#highBox{
+    background:#ffffffcc;
+    color:#222;
+    padding:10px 18px;
+    border-radius:12px;
+    font-weight:bold;
+}
+
+button{
+    padding:10px 15px;
+    border:none;
+    border-radius:10px;
+    font-size:16px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+#plantPea{
+    background:#5fd35f;
+}
+
+#plantSun{
+    background:#ffe066;
+}
+
+#game{
+    width:900px;
+    height:500px;
+    margin:10px auto;
+    background:#6fbf4b;
+    border:6px solid #3b6b24;
+    position:relative;
+    display:grid;
+    grid-template-columns:repeat(9,1fr);
+    grid-template-rows:repeat(5,1fr);
+    overflow:hidden;
+}
+
+.cell{
+    border:1px solid rgba(255,255,255,0.25);
+    position:relative;
+}
+
+.plant{
+    position:absolute;
+    width:60px;
+    height:60px;
+    left:20px;
+    top:20px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:32px;
+}
+
+.peashooter{
+    background:#4caf50;
+}
+
+.sunflower{
+    background:#ffd54f;
+}
+
+.zombie{
+    position:absolute;
+    width:60px;
+    height:60px;
+    background:#777;
+    border-radius:10px;
+    font-size:35px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.pea{
+    position:absolute;
+    width:18px;
+    height:18px;
+    background:lime;
+    border-radius:50%;
+}
+
+.sun{
+    position:absolute;
+    width:50px;
+    height:50px;
+    background:gold;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+    cursor:pointer;
+    box-shadow:0 0 10px yellow;
+}
+
+.mower{
+    position:absolute;
+    width:70px;
+    height:70px;
+    background:red;
+    left:0;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:35px;
+}
+
+#overlay{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,0.7);
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    z-index:999;
+}
+
+#gameOverText{
+    font-size:70px;
+    color:white;
+    margin-bottom:20px;
+    text-shadow:4px 4px 10px black;
+}
+
+#restartBtn{
+    background:#4caf50;
+    color:white;
+    font-size:28px;
+    padding:15px 30px;
+}
+</style>
+</head>
+
+<body>
+<a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+  <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+
+<div id="topbar">
+
+    <div id="sunCount">☀️ 150</div>
+
+    <div id="scoreBox">⭐ Pisteet: 0</div>
+
+    <div id="highBox">🏆 Highscore: 0</div>
+
+    <button id="plantPea">🌱 Ampujakasvi (100)</button>
+
+    <button id="plantSun">🌻 Auringonkukka (50)</button>
+
+</div>
+
+<div id="game">
+
+    <div id="overlay">
+        <div id="gameOverText">GAME OVER</div>
+        <button id="restartBtn">🔄 Pelaa uudestaan</button>
+    </div>
+
+</div>
+
+<script>
+const game = document.getElementById("game");
+const overlay = document.getElementById("overlay");
+
+const sunText = document.getElementById("sunCount");
+const scoreBox = document.getElementById("scoreBox");
+const highBox = document.getElementById("highBox");
+
+const rows = 5;
+const cols = 9;
+
+let suns = 150;
+let selectedPlant = "pea";
+
+let score = 0;
+let highscore = localStorage.getItem("pvzHighscore") || 0;
+
+let gameRunning = true;
+
+highBox.innerHTML = "🏆 Highscore: " + highscore;
+
+const cells = [];
+const plants = [];
+const zombies = [];
+const peas = [];
+const mowers = [];
+
+document.getElementById("plantPea").onclick = () => selectedPlant = "pea";
+document.getElementById("plantSun").onclick = () => selectedPlant = "sun";
+
+document.getElementById("restartBtn").onclick = () => {
+    location.reload();
+};
+
+function updateSun(){
+    sunText.innerHTML = "☀️ " + suns;
+}
+
+function updateScore(){
+
+    scoreBox.innerHTML = "⭐ Pisteet: " + score;
+
+    if(score > highscore){
+
+        highscore = score;
+
+        localStorage.setItem("pvzHighscore", highscore);
+
+        highBox.innerHTML = "🏆 Highscore: " + highscore;
+    }
+}
+
+for(let r=0;r<rows;r++){
+
+    for(let c=0;c<cols;c++){
+
+        const cell = document.createElement("div");
+
+        cell.className = "cell";
+
+        cell.dataset.row = r;
+        cell.dataset.col = c;
+
+        cell.onclick = () => placePlant(r,c);
+
+        game.appendChild(cell);
+
+        cells.push(cell);
+    }
+}
+
+function getCell(r,c){
+
+    return cells.find(x =>
+        x.dataset.row == r &&
+        x.dataset.col == c
+    );
+}
+
+function placePlant(r,c){
+
+    if(!gameRunning) return;
+
+    if(plants.find(p => p.row===r && p.col===c)) return;
+
+    if(selectedPlant==="pea"){
+
+        if(suns < 100) return;
+
+        suns -= 100;
+
+        const el = document.createElement("div");
+
+        el.className = "plant peashooter";
+
+        el.innerHTML = "🌱";
+
+        getCell(r,c).appendChild(el);
+
+        plants.push({
+            type:"pea",
+            row:r,
+            col:c,
+            el,
+            hp:100,
+            shoot:0
+        });
+    }
+
+    if(selectedPlant==="sun"){
+
+        if(suns < 50) return;
+
+        suns -= 50;
+
+        const el = document.createElement("div");
+
+        el.className = "plant sunflower";
+
+        el.innerHTML = "🌻";
+
+        getCell(r,c).appendChild(el);
+
+        plants.push({
+            type:"sun",
+            row:r,
+            col:c,
+            el,
+            hp:100,
+            timer:0
+        });
+    }
+
+    updateSun();
+}
+
+function createZombie(){
+
+    if(!gameRunning) return;
+
+    const row = Math.floor(Math.random()*rows);
+
+    const el = document.createElement("div");
+
+    el.className = "zombie";
+
+    el.innerHTML = "🧟";
+
+    game.appendChild(el);
+
+    zombies.push({
+        row,
+        x:850,
+        hp:100,
+        speed:0.35,
+        el
+    });
+}
+
+function createPea(x,y,row){
+
+    const el = document.createElement("div");
+
+    el.className = "pea";
+
+    game.appendChild(el);
+
+    peas.push({
+        x,y,row,el
+    });
+}
+
+function createSun(x,y){
+
+    if(!gameRunning) return;
+
+    const el = document.createElement("div");
+
+    el.className = "sun";
+
+    el.innerHTML = "☀️";
+
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+
+    el.onclick = () => {
+
+        if(!gameRunning) return;
+
+        suns += 25;
+
+        updateSun();
+
+        el.remove();
+    };
+
+    game.appendChild(el);
+
+    setTimeout(()=>{
+        if(el.parentNode) el.remove();
+    },6000);
+}
+
+function createMowers(){
+
+    for(let r=0;r<rows;r++){
+
+        const el = document.createElement("div");
+
+        el.className = "mower";
+
+        el.innerHTML = "🚜";
+
+        el.style.top = (r*100+15)+"px";
+
+        game.appendChild(el);
+
+        mowers.push({
+            row:r,
+            x:0,
+            active:false,
+            used:false,
+            el
+        });
+    }
+}
+
+createMowers();
+
+function removePlant(plant){
+
+    plant.el.remove();
+
+    plants.splice(
+        plants.indexOf(plant),
+        1
+    );
+}
+
+function gameLoop(){
+
+    if(!gameRunning) return;
+
+    // Kasvit
+    plants.forEach(p=>{
+
+        if(p.type==="pea"){
+
+            p.shoot++;
+
+            const zombieAhead = zombies.find(z =>
+                z.row===p.row &&
+                z.x > p.col*100
+            );
+
+            if(zombieAhead && p.shoot>90){
+
+                createPea(
+                    p.col*100+70,
+                    p.row*100+45,
+                    p.row
+                );
+
+                p.shoot=0;
+            }
+        }
+
+        if(p.type==="sun"){
+
+            p.timer++;
+
+            if(p.timer>300){
+
+                createSun(
+                    p.col*100+20,
+                    p.row*100+20
+                );
+
+                p.timer=0;
+            }
+        }
+    });
+
+    // Herneet
+    peas.forEach((pea,i)=>{
+
+        pea.x += 5;
+
+        pea.el.style.left = pea.x + "px";
+        pea.el.style.top = pea.y + "px";
+
+        zombies.forEach((z,zi)=>{
+
+            if(
+                z.row===pea.row &&
+                Math.abs(z.x - pea.x) < 30
+            ){
+
+                z.hp -= 20;
+
+                pea.el.remove();
+
+                peas.splice(i,1);
+
+                if(z.hp<=0){
+
+                    z.el.remove();
+
+                    zombies.splice(zi,1);
+
+                    score++;
+
+                    updateScore();
+                }
+            }
+        });
+
+        if(pea.x > 900){
+
+            pea.el.remove();
+
+            peas.splice(i,1);
+        }
+    });
+
+    // Zombit
+    zombies.forEach((z,zi)=>{
+
+        z.x -= z.speed;
+
+        z.el.style.left = z.x + "px";
+        z.el.style.top = (z.row*100+20)+"px";
+
+        const plant = plants.find(p =>
+            p.row===z.row &&
+            Math.abs(z.x - (p.col*100+40)) < 30
+        );
+
+        if(plant){
+
+            plant.hp -= 0.4;
+
+            if(plant.hp<=0){
+
+                removePlant(plant);
+            }
+        }
+
+        // tuhoa kasvi jos zombi menee ohi
+        plants.forEach(p=>{
+
+            if(
+                p.row===z.row &&
+                z.x < p.col*100
+            ){
+                removePlant(p);
+            }
+        });
+
+        // ruohonleikkuri
+        const mower = mowers.find(m =>
+            m.row===z.row &&
+            !m.used
+        );
+
+        if(mower && z.x < 40){
+
+            mower.active = true;
+
+            mower.used = true;
+        }
+
+        // häviö
+        if(z.x < -30){
+
+            loseGame();
+        }
+    });
+
+    // ruohonleikkurit
+    mowers.forEach(m=>{
+
+        if(m.active){
+
+            m.x += 8;
+
+            m.el.style.left = m.x + "px";
+
+            zombies.forEach((z,zi)=>{
+
+                if(
+                    z.row===m.row &&
+                    Math.abs(z.x - m.x) < 60
+                ){
+
+                    z.el.remove();
+
+                    zombies.splice(zi,1);
+
+                    score++;
+
+                    updateScore();
+                }
+            });
+        }
+    });
+
+    requestAnimationFrame(gameLoop);
+}
+
+function loseGame(){
+
+    gameRunning = false;
+
+    overlay.style.display = "flex";
+}
+
+setInterval(()=>{
+    createZombie();
+},3000);
+
+setInterval(()=>{
+
+    createSun(
+        Math.random()*800+50,
+        Math.random()*400+50
+    );
+
+},5000);
+
+updateSun();
+updateScore();
+
+gameLoop();
+
+</script>
+
+</body>
+</html>C

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<title>Myy ja Osta Osakkeita</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1 { color:#38bdf8; margin-top:10px; }
+
+#wrap {
+    position: relative;
+    margin-top: 10px;
+}
+
+canvas {
+    border-radius: 12px;
+    background: #0b1220;
+}
+
+#ui {
+    margin-top: 15px;
+    text-align: center;
+}
+
+button {
+    padding: 10px 14px;
+    margin: 5px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.buy { background:#22c55e; }
+.sell { background:#ef4444; }
+
+#panel {
+    margin-top: 10px;
+}
+
+#info {
+    margin-top: 10px;
+    color: #94a3b8;
+}
+</style>
+</head>
+
+<body>
+<a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+  <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+
+<h1>📈 Myy ja Osta Osakkeita</h1>
+
+<div id="wrap">
+<canvas id="c" width="700" height="400"></canvas>
+</div>
+
+<div id="ui">
+
+<div id="info">
+Rahat: <span id="money">1000</span>€ |
+Osakkeet: <span id="stocks">0</span> |
+Hinta: <span id="price">100</span>
+</div>
+
+<div id="panel">
+<button class="buy" onclick="buy()">Osta</button>
+<button class="sell" onclick="sell()">Myy</button>
+</div>
+
+</div>
+
+<script>
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+let price = 100;
+let money = 1000;
+let stocks = 0;
+
+let history = [];
+
+function updateUI() {
+    document.getElementById("price").innerText = price.toFixed(0);
+    document.getElementById("money").innerText = money.toFixed(0);
+    document.getElementById("stocks").innerText = stocks;
+}
+
+function buy() {
+    if (money >= price) {
+        money -= price;
+        stocks++;
+        updateUI();
+    }
+}
+
+function sell() {
+    if (stocks > 0) {
+        money += price;
+        stocks--;
+        updateUI();
+    }
+}
+
+// 📊 hinnan muutos
+function updatePrice() {
+    let change = (Math.random() - 0.5) * 12;
+
+    price += change;
+
+    if (price < 20) price = 20;
+
+    history.push(price);
+
+    if (history.length > 100) {
+        history.shift();
+    }
+
+    updateUI();
+}
+
+// 📈 graafin piirto
+function drawGraph() {
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // grid
+    ctx.strokeStyle = "#1f2937";
+    for (let i = 0; i < 10; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, i * 40);
+        ctx.lineTo(canvas.width, i * 40);
+        ctx.stroke();
+    }
+
+    // käyrä
+    ctx.beginPath();
+    ctx.strokeStyle = "#38bdf8";
+    ctx.lineWidth = 2;
+
+    for (let i = 0; i < history.length; i++) {
+
+        let x = (i / 100) * canvas.width;
+        let y = canvas.height - (history[i] * 2);
+
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+
+    ctx.stroke();
+
+    // viimeinen piste
+    if (history.length > 0) {
+        let last = history[history.length - 1];
+
+        ctx.fillStyle = "#fbbf24";
+        ctx.beginPath();
+        ctx.arc(canvas.width - 10, canvas.height - last * 2, 5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function loop() {
+    updatePrice();
+    drawGraph();
+}
+
+setInterval(loop, 800);
+
+updateUI();
+</script>
+
+</body>
+</html>

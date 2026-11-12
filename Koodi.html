@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <title>Kääntäjä</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      margin-bottom: 10px;
+    }
+    .box {
+      margin-bottom: 20px;
+    }
+    button, select {
+      padding: 10px;
+      margin-bottom: 15px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>KÄÄNTÄJÄ</h1>
+
+  <button onclick="toggleMode()">Vaihda kentät 🔄</button>
+  
+  <a href="Salainen.html">
+    <button style="position:absolute; top:20px; right:20px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+  </a>
+
+  <br>
+  <label>Valitse kieli:</label>
+  <select id="languageSelect" onchange="changeLanguage()" onmousedown="if(this.options.length>5){this.size=4;}" onblur="this.size=1;" style="position: absolute; z-index: 100;">
+    <option value="lang1">Vorthan</option>
+    <option value="lang2">Tharvok</option>
+    <option value="lang3">Morsetus</option>
+	<option value="lang4">Xyrell</option>
+	<option value="lang5">Emojian</option>
+	<option value="lang6">Florin</option>
+	<option value="lang7">Krythar</option>
+	<option value="lang8">Zyphor</option>
+	<option value="lang9">Gravith</option>
+	<option value="lang10">Neonex</option>
+	<option value="lang11">Sylvara</option>
+	<option value="lang12">Arcturus</option>
+	<option value="lang13">Martaani</option>
+	<option value="lang14">Astreon</option>
+	<option value="lang15">Sumukieli</option>
+	<option value="lang16">Garenin Glyfonia</option>
+	<option value="lang17">Akronyymistan</option>
+	<option value="lang18">Antonymistan</option>
+	<option value="lang19">NATO-aakkoset</option>
+	<option value="lang20">Caesar cipher</option>
+	<option value="lang21">Vectron Grid</option>
+  </select>
+  <!-- Lisätään tyhjä tila valikon alle, koska 'absolute' nostaa sen ilmaan -->
+  <div style="height: 50px;"></div>
+	
+  </select>
+
+  <div class="box">
+    <h2 id="inputLabel">Kirjoita normaali teksti</h2>
+    <textarea id="input"></textarea>
+  </div>
+
+  <div class="box">
+    <h2 id="outputLabel">Käännös valittuun kieleen</h2>
+    <textarea id="output" readonly></textarea>
+  </div>
+
+  <script>
+    // ERI SALAKIELET
+    const languages = {
+      lang1: {
+      "A": "-", "B": "I", "C": "+", "D": "X", "E": "[]",
+	  "F": "O", "G": "Δ", "H": "/", "I": "|", "J": "∧",
+	  "K": "V", "L": "(", "M": ")", "N": "L", "O": "7",
+	  "P": "[X]", "Q": "[+]", "R": "[I]", "S": "[-]", "T": "[O]",
+	  "U": "[/]", "V": "[|]", "W": "[∧]", "X": "[V]", "Y": "(-)", "Z": "*", "-": "↔"
+      },
+      lang2: {
+        "A": "ᚨ", "B": "ᛒ", "C": "ᚴ", "D": "ᛞ", "E": "ᛖ",
+        "F": "ᚠ", "G": "ᚷ", "H": "ᚺ", "I": "ᛁ", "J": "ᛁ",
+        "K": "ᚴ", "L": "ᛚ", "M": "ᛗ", "N": "ᚾ", "O": "ᚨ´",
+        "P": "ᛈ", "Q": "ᚴᚢ", "R": "ᚱ", "S": "ᛋ", "T": "ᛏ",
+        "U": "ᚢ", "V": "ᚢ", "W": "ᚹ", "X": "ᛉ", "Y": "M", "Z": "ᛦ",
+		"0 ":"᛫","1":"ᛁ ","2":"ᛁᛁ ","3":"ᛁᛁᛁ ","4":"ᚴ ","5":"ᚴᛁ ","6":"ᚴᛁᛁ ","7":"ᚴᛁᛁᛁ ","8":"ᚴᚴ ","9":"ᚴᚴᛁ ",
+      },
+      lang3: {
+		"A":"·–","B":"–···","C":"–·–·","D":"–··","E":"·","F":"··–·","G":"––·",
+		"H":"····","I":"··","J":"·–––","K":"–·–","L":"·–··","M":"––","N":"–·",
+		"O":"–––","P":"·––·","Q":"––·–","R":"·–·","S":"···","T":"–","U":"··–",
+		"V":"···–","W":"·––","X":"–··–","Y":"–·––","Z":"––··"," ":" / "
+      },
+	  lang4: {
+		"A":"ꙮ","B":"Ӝ","C":"Ꚙ","D":"Ɇ","E":"Ɇ̷","F":"Ꝼ","G":"Ǥ",
+		"H":"Ꜧ","I":"ꟾ","J":"Ɉ","K":"Ꝁ","L":"Ⱡ","M":"ᛖᛖ","N":"И",
+		"O":"⊙","P":"Ꝑ","Q":"Ɋ","R":"Ꝛ","S":"Ꙅ","T":"Ŧ","U":"Ʉ",
+		"V":"Ꝟ","W":"Ѡ","X":"Ӿ","Y":"¥","Z":"Ƶ"
+      },
+	  lang5: {
+		"A":"🍎","B":"🐻","C":"🐱","D":"🐶","E":"🦅","F":"🔥","G":"👻",
+		"H":"🏠","I":"🍦","J":"🧃","K":"🔑","L":"🦁","M":"🌙","N":"🧭",
+		"O":"🐙","P":"🧩","Q":"👑","R":"🤖","S":"⭐","T":"🌴","U":"☂️",
+		"V":"🎻","W":"🌊","X":"❌","Y":"🪀","Z":"⚡"," ":" "
+	  },
+	  lang6: {
+		"A":"𖧷","B":"𖦹","C":"𖦺","D":"𖧁","E":"𖦻","F":"𖦼","G":"𖦽",
+		"H":"𖦾","I":"𖦿","J":"𖧀","K":"𖧂","L":"𖧃","M":"𖧄","N":"𖧅",
+		"O":"𖧆","P":"𖧇","Q":"𖧈","R":"𖧉","S":"𖧊","T":"𖧋","U":"𖧌",
+		"V":"𖧍","W":"𖧎","X":"𖧏","Y":"𖧐","Z":"𖧑"," ":" "
+	  },
+	  lang7: {
+		"A":"⟠","B":"⌁","C":"⟡","D":"⎔","E":"⟢","F":"⌖","G":"⟣",
+		"H":"⟤","I":"⟦","J":"⟧","K":"⌬","L":"⟪","M":"⟫","N":"⌗",
+		"O":"◇","P":"⌂","Q":"⍟","R":"⎊","S":"⟟","T":"⌶","U":"⎋",
+		"V":"⎍","W":"⎎","X":"⌧","Y":"⍙","Z":"⍚","0":"⊘",
+		"1":"⟊","2":"⟋","3":"⟌","4":"⟍","5":"⟎","6":"⟏","7":"⟐","8":"⟑","9":"⟒"
+	  },
+	  lang8: {
+		"A":"@1","B":"|3","C":"(#","D":"|)","E":"&3","F":"|=","G":"(_+",
+		"H":"#-#","I":"!1","J":"_|","K":"|<","L":"|_","M":"/II/","N":"/I/",
+		"O":"0","P":"|*","Q":"0,","R":"|2","S":"$5","T":"+7","U":"|_|",
+		"V":"//","W":"/V/","X":"}{","Y":"`/","Z":">=","0":"O#",
+		"1":"I#","2":"Z#","3":"E#","4":"A#","5":"S#","6":"G#","7":"T#","8":"B#","9":"P#"," ":" "
+	  },
+	   lang9: {
+		"A":"ᚨ","B":"ᛒ","C":"ᚲ","D":"ᛞ","E":"ᛖ","F":"ᚠ","G":"ᚷ",
+		"H":"ᚺ","I":"ᛁ","J":"ᛃ","K":"ᚴ","L":"ᛚ","M":"ᛗ","N":"ᚾ",
+		"O":"ᛟ","P":"ᛈ","Q":"ᛩ","R":"ᚱ","S":"ᛊ","T":"ᛏ","U":"ᚢ",
+		"V":"ᚡ","W":"ᚹ","X":"ᛪ","Y":"ᛦ","Z":"ᛉ",
+		"0":"᛫","1":"ᛁ","2":"ᛁᛁ","3":"ᛁᛁᛁ","4":"ᚴ",
+		"5":"ᚴᛁ","6":"ᚴᛁᛁ","7":"ᚴᛁᛁᛁ","8":"ᚴᚴ","9":"ᚴᚴᛁ",
+		" ":" "
+	  },
+	  lang10: {
+		"A":"@1","B":"|3","C":"(#","D":"|)","E":"3#","F":"|=","G":"9+",
+		"H":"#H","I":"!","J":"_|","K":"|<","L":"1_","M":"^^",
+		"N":"|\\|","O":"0","P":"|*","Q":"0,","R":"12","S":"$",
+		"T":"+","U":"|_|","V":"\\/","W":"VV","X":"%","Y":"'/","Z":"2>",
+		"0":"O#","1":"I#","2":"Z#","3":"E#","4":"A#",
+		"5":"S#","6":"G#","7":"T#","8":"B#","9":"P#",
+		" ":"_"
+	  },
+	  lang11: {
+		"A":"ᚠ","B":"ᚢ","C":"ᚦ","D":"ᚨ","E":"ᚱ","F":"ᚲ","G":"ᚷ",
+		"H":"ᚹ","I":"ᚺ","J":"ᚾ","K":"ᛁ","L":"ᛃ","M":"ᛇ","N":"ᛈ",
+		"O":"ᛉ","P":"ᛋ","Q":"ᛏ","R":"ᛒ","S":"ᛖ","T":"ᛗ","U":"ᛚ",
+		"V":"ᛜ","W":"ᛞ","X":"ᛟ","Y":"ᛠ","Z":"ᛡ",
+		"0":"⟐","1":"⟡","2":"⟢","3":"⟣","4":"⟤",
+		"5":"⟥","6":"⟦","7":"⟧","8":"⟨","9":"⟩",
+		" ":" "
+	  },
+	  lang12: {
+		"A":"⟟","B":"⟐","C":"/","D":"+","E":"⟢","F":"F","G":"_*",
+		"H":"⟱","I":"⟣","J":"⟑","K":"⟁","L":"⟧","M":"⟦","N":"⟪",
+		"O":"⟡","P":"P","Q":"Q","R":"⟫","S":"⟭","T":"⟬","U":"⟤",
+		"V":"V","W":"⟒","X":"⟴","Y":"Y","Z":"Z"," ":" "
+	  },
+	  lang13: {
+		"A":"/+","B":"B","C":" ","D":"D","E":"E","F":"F","G":"G",
+		"H":"H","I":"I","J":"J","K":"K","L":" ","M":"M","N":"N",
+		"O":"O","P":"P","Q":" ","R":"T","S":"S","T":"R","U":"U",
+		"V":"V","W":" ","X":"+","Y":" ","Z":"ž","Ä":" ","Ö":" ","Å":" "," ":" "
+	  },
+	  lang14: {
+		"A":"/_E ","B":"][3 ","C":"< ","D":"D ","E":"=_ ","F":"F ","G":"(_+ ",
+		"H":"H ","I":"! ","J":"_ ","K":"|< ","L":"| ","M":"//| ","N":"|| ",
+		"O":"() ","P":"P ","Q":"()_ ","R":"R ","S":"$ ","T":"-|- ","U":"U ",
+		"V":"/ ","W":"// ","X":">< ","Y":"`/ ","Z":"=/ "," ":"  "
+	  },
+	  lang15: {
+		"A":"/| ","B":"][3 ","C":"< ","D":"D ","E":"=_ ","F":"F ","G":"C+ ",
+		"H":"H ","I":"! ","J":"_ ","K":"|< ","L":"| ","M":"MM ","N":"|| ",
+		"O":"O ","P":"P ","Q":"()_ ","R":"R ","S":"$ ","T":"T ","U":"U ",
+		"V":"/ ","W":"WW ","X":">< ","Y":"`/ ","Z":"=/ "," ":"  "
+	  },
+	  lang16: {
+		"A":"Æ","B":"B","C":"ˈC","D":"ˈD","E":"ʒ","F":"ʃ-ʃ","G":"ˈɔ",
+		"H":"/Ξ/","I":"I","J":"L","K":"ˈK","L":"J","M":"Σ","N":"И",
+		"O":"O","P":"þ","Q":"O=","R":"¦»","S":"Z","T":"‡","U":"ˈʊ",
+		"V":"Λ","W":"ΛΛ","X":"X","Y":"V","Z":"S","a":"æ","b":"b",
+		"c":"ˈc","d":"ˈd","e":"ə","f":"ʃ","g":"ɔ",
+		"h":"/Ξ","i":"i","j":"l","k":"ˈk","l":"j","m":"E","n":"и",
+		"o":"o","p":"Þ","q":"o=","r":"»","s":"z","t":"+","u":"μ",
+		"v":"ʌ","w":"ʌʌ","x":"x","y":"v","z":"s",".":"ː","0":".",
+		"1":"!","2":"5","3":"3","4":"A",
+		"5":"2","6":"9","7":"/","8":"%","9":"6"," ":"  "
+	  },
+	  lang17: {
+		"A":"Aurinko ","B":"Banaani ","C":"Celsius ","D":"Delfiini ","E":"Etana ","F":"Fasaani ","G":"Gorilla ","H":"Hevonen ","I":"Ikkuna ","J":"Jänis ","K":"Kissa ","L":"Lentää ","M":"Mustikkapiirakka ","N":"Nalle ","O":"Oikea ","P":"Porkkana ","Q":"Quantum ","R":"Rumpali ","S":"Se ","T":"Tietokone ","U":"Uimarengas ","V":"Vene ","W":"Watti ","X":"Xylofoni ","Y":"Ystävä ","Z":"Seepra ","Å":"Åbo ","Ä":"Äiti ","Ö":"Öljyä "," ":"(Väli) "
+      },
+	  lang18: {
+	    "A": "Panama ","B": "Zabreb ","C": "Quebec ","D": "Madrid ","E": "Venice ","F": "Cardiff ","G": "Strasbourg ","H": "Zürich ","I": "Delhi ","J": "Bhuj ","K": "Bangkok ","L": "Liverpool ","M": "Amsterdam ","N": "Berlin ","O": "Tokyo ","P": "Nordkapp ","Q": "Kuujjuaq ","R": "Manchester ","S": "Paris ","T": "Detroit ","U": "Honolulu ","V": "Kishinev ","W": "Glasgow ","X": "Phoenix ","Y": "Sydney ","Z": "Cadiz ","Å": "Ingå ","Ä": "Pöytyä ","Ö": "Kihniö "," ":"(Väli) "
+      },
+	  lang19: {
+		"A": "Alfa ", "B": "Bravo ", "C": "Charlie ", "D": "Delta ", "E": "Echo ", "F": "Foxtrot ", "G": "Golf ", "H": "Hotel ", "I": "India ", "J": "Juliett ", "K": "Kilo ", "L": "Lima ", "M": "Mike ", "N": "November ", "O": "Oscar ", "P": "Papa ", "Q": "Quebec ", "R": "Romeo ", "S": "Sierra ", "T": "Tango ", "U": "Uniform ", "V": "Victor ", "W": "Whiskey ", "X": "X-ray ", "Y": "Yankee ", "Z": "Zulu ", " ":"(Space) "
+	  },
+	  lang20: {
+		"A": "H", "B": "I", "C": "J", "D": "K", "E": "L", "F": "M", "G": "N", "H": "O", "I": "P", "J": "Q", "K": "R", "L": "S", "M": "T", "N": "U", "O": "V", "P": "W", "Q": "X", "R": "Y", "S": "Z", "T": "A", "U": "B", "V": "C", "W": "D", "X": "E", "Y": "F", "Z": "G", " ":" "
+	  },
+	  lang21: {
+	"A": "/\\","B": "|3","C": "[","D": "|)","E": "=","F": "|=","G": "(_","H": "|-|","I": "|","J": " _|",
+	"K": "|<","L": "|_","M": "\\/\\/","N": "|\\|","O": "0","P": "|°","Q": "(0)_","R": "|2","S": "5","T": "-|-,
+	"U": "\\_/","V": "\\/","W": "/\\/\\","X": "\\% /","Y": "\\ /","Z": ">=","Ä": "\":\"/\\","Ö": "\":\"0",
+	"Å": "°/\\",
+	" ": " "
+	  }
+    };
+
+    let currentDictionary = languages.lang1;
+    let reverseDictionary = {};
+    let reverseMode = false;
+
+    function buildReverse() {
+      reverseDictionary = {};
+      for (let key in currentDictionary) {
+        reverseDictionary[currentDictionary[key]] = key;
+      }
+    }
+function convertNormal(text) {
+  const source = document.getElementById("languageSelect").value === "lang16"
+    ? text
+    : text.toUpperCase();
+
+  return source.split("").map(c => currentDictionary[c] || c).join("");
+}
+
+    function convertReverse(text) {
+      let result = "";
+      let i = 0;
+
+      const codes = Object.keys(reverseDictionary)
+        .sort((a, b) => b.length - a.length);
+
+      while (i < text.length) {
+        let matched = false;
+
+        for (let code of codes) {
+          if (text.substring(i, i + code.length) === code) {
+            result += reverseDictionary[code];
+            i += code.length;
+            matched = true;
+            break;
+          }
+        }
+
+        if (!matched) {
+          result += text[i];
+          i++;
+        }
+      }
+
+      return result;
+    }
+
+    const input = document.getElementById("input");
+    const output = document.getElementById("output");
+    const inputLabel = document.getElementById("inputLabel");
+    const outputLabel = document.getElementById("outputLabel");
+
+    input.addEventListener("input", update);
+
+    function update() {
+      if (!reverseMode) {
+        output.value = convertNormal(input.value);
+      } else {
+        output.value = convertReverse(input.value);
+      }
+    }
+
+    function toggleMode() {
+      reverseMode = !reverseMode;
+      input.value = "";
+      output.value = "";
+
+      if (reverseMode) {
+        inputLabel.textContent = "Kirjoita valitulla kielellä";
+        outputLabel.textContent = "Käännös normaaliin tekstiin";
+      } else {
+        inputLabel.textContent = "Kirjoita normaali teksti";
+        outputLabel.textContent = "Käännös valittuun kieleen";
+      }
+    }
+
+    function changeLanguage() {
+      const selected = document.getElementById("languageSelect").value;
+      currentDictionary = languages[selected];
+      buildReverse();
+      update();
+    }
+
+    // alustus
+    buildReverse();
+  </script>
+
+</body>
+</html>

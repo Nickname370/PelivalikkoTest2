@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shakki</title>
+
+<style>
+body{
+    margin:0;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:linear-gradient(135deg,#1a1a1a,#333);
+    font-family:Arial,sans-serif;
+    overflow:hidden;
+}
+
+.container{
+    text-align:center;
+    background:rgba(0,0,0,0.7);
+    padding:40px;
+    border-radius:20px;
+    box-shadow:0 0 30px rgba(255,255,255,0.15);
+}
+
+h1{
+    color:white;
+    font-size:60px;
+    margin-bottom:10px;
+}
+
+.subtitle{
+    color:#ddd;
+    font-size:20px;
+    margin-bottom:30px;
+}
+
+.chess-icons{
+    font-size:50px;
+    margin-bottom:25px;
+}
+
+button{
+    display:block;
+    width:260px;
+    margin:12px auto;
+    padding:15px;
+    font-size:22px;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    transition:0.25s;
+    font-weight:bold;
+}
+
+
+.back{
+    background:#444;
+    color:white;
+}
+
+button:hover{
+    transform:scale(1.05);
+}
+
+.board-bg{
+    position:absolute;
+    inset:0;
+    opacity:0.08;
+    background:
+    repeating-linear-gradient(
+        0deg,
+        #fff 0px,
+        #fff 60px,
+        #000 60px,
+        #000 120px
+    ),
+    repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 60px,
+        rgba(255,255,255,0.3) 60px,
+        rgba(255,255,255,0.3) 120px
+    );
+}
+</style>
+</head>
+<body>
+
+<div class="board-bg"></div>
+
+<div class="container">
+
+    <div class="chess-icons">
+        ♔ ♕ ♖ ♗ ♘ ♙
+    </div>
+<br>
+    <h1>Shakki</h1>
+	<br>
+    <div class="subtitle">
+        Valitse pelitila
+    </div>
+	
+	<br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+	<br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+
+<a href="shakki.html">
+  <button style="position:absolute; top:200px; right:500px; padding:10px 14px; font-size:16px; cursor:pointer;">Yksinpeli</button>
+</a>
+
+<a href="shakki2.html">
+  <button style="position:absolute; top:260px; right:500px; padding:10px 14px; font-size:16px; cursor:pointer;">Kaksinpeli</button>
+</a>
+
+<a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+  <button style="position:absolute; top:500px; right:500px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Takaisin</button>
+</a>
+
+</div>
+
+</body>
+</html>
+

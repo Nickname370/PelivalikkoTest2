@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pinnan Alla</title>
+
+<style>
+    body{
+        margin:0;
+        overflow:hidden;
+        background:black;
+        font-family:Arial,sans-serif;
+    }
+
+    canvas{
+        display:block;
+    }
+
+    #hud{
+        position:absolute;
+        top:10px;
+        left:10px;
+        color:white;
+        z-index:10;
+        background:rgba(0,0,0,0.5);
+        padding:10px;
+        border-radius:10px;
+    }
+
+    #inventory{
+        position:absolute;
+        bottom:10px;
+        left:10px;
+        color:white;
+        background:rgba(0,0,0,0.6);
+        padding:10px;
+        border-radius:10px;
+        width:220px;
+    }
+
+    #crafting{
+        position:absolute;
+        right:10px;
+        bottom:10px;
+        color:white;
+        background:rgba(0,0,0,0.6);
+        padding:10px;
+        border-radius:10px;
+        width:220px;
+    }
+
+    #crosshair{
+        position:absolute;
+        left:50%;
+        top:50%;
+        transform:translate(-50%,-50%);
+        color:white;
+        font-size:24px;
+        z-index:20;
+        pointer-events:none;
+    }
+
+    button{
+        width:100%;
+        margin-top:5px;
+        padding:8px;
+        border:none;
+        border-radius:5px;
+        background:#00aaff;
+        color:white;
+        cursor:pointer;
+    }
+
+    button:hover{
+        background:#0088cc;
+    }
+	
+	#info{
+        position:absolute;
+        top:10px;
+        right:10px;
+        color:white;
+        background:rgba(0,0,0,0.6);
+        padding:10px;
+        border-radius:10px;
+        width:220px;
+    }
+	
+	#valikko{
+		transition: all 0.3s ease;
+		position:absolute;
+		top:550px; 
+		right:520px;
+		padding:10px 14px; 
+		font-size:16px;
+		cursor:pointer;
+	}
+</style>
+</head>
+
+<body>
+
+<div id="crosshair">+</div>
+
+<div id="hud">
+	<div>Inventaario / Näppäimet = E</div>
+    <div>❤️ HP: <span id="health">100</span></div>
+    <div>🫁 Happi: <span id="oxygen">50</span></div>
+    <div>🍗 Nälkä: <span id="hunger">100</span></div>
+    <div>📍 Syvyys: <span id="depth">0</span>m</div>
+</div>
+
+<div id="inventory">
+    <h3>🎒 Inventaario</h3>
+    <div id="items"></div>
+</div>
+
+<div id="info">
+  <a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+    <button style="position:absolute; top:-5px; right:0px; padding:10px 14px; font-size:16px; cursor:pointer;">⬅️ Pelivalikkoon</button>
+  </a>
+	<br>
+    <h3>INFO</h3>
+	<h5>Muista katsoa happeasi!</h5> 
+	<p>Liiku = WASD</p> 
+	<p>Inventaario = E</p> 
+	<p>Ylös = Välilyönti</p> 
+	<p>Alas = Vasen Shift (↑)</p> 
+</div>
+
+<div id="crafting">
+    <h3>🔧 Rakentaminen</h3>
+
+    <button onclick="craftTank()">
+        Rakenna Happi Säiliö (5 Kristallia)
+    </button>
+
+    <button onclick="craftRocket()">
+        🚀 Rakenna Raketti
+        (15 Titaania + 5 Kristallia)
+    </button>
+</div>
+
+<div id="gameOverScreen" style="
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.9);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    z-index:999;
+    color:white;
+    font-family:Arial;
+">
+    <h1 style="font-size:64px; margin-bottom:20px;">
+        GAME OVER
+    </h1>
+
+    <button id="restartBtn" style="
+		position: absolute;
+		bottom: 300;
+		right: 500;
+        width:220px;
+        padding:15px;
+        font-size:24px;
+        background:#00aaff;
+        border:none;
+        border-radius:10px;
+        cursor:pointer;
+    ">
+        🔄 Uudestaan
+    </button>
+	  <a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+    <button class="valikko">⬅️ Takaisin Pelivalikkoon</button>
+  </a>
+</div>
+
+<div id="winScreen" style="
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.9);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    z-index:999;
+    color:white;
+    font-family:Arial;
+">
+
+    <h1 style="font-size:70px;">
+        🚀 VOITIT PELIN
+    </h1>
+	<br>
+	<p>#MAINOS KOKEILE PELATA SÄHKÖVERKKOA! #MAINOS<p>
+
+    <button onclick="location.reload()" style="
+        width:220px;
+        padding:15px;
+        font-size:24px;
+        background:#00cc66;
+        border:none;
+        border-radius:10px;
+        cursor:pointer;
+    ">
+        🔄 Pelaa Uudestaan
+    </button>
+		  <a href="https://nickname370.github.io/AloitusTest11/valikko3.html">
+    <button class="valikko">⬅️ Takaisin Pelivalikkoon</button>
+  </a>
+
+</div>
+
+<div id="rocketText" style="
+    position:absolute;
+    top:55%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    color:white;
+    font-size:28px;
+    display:none;
+    z-index:1000;
+    text-shadow:2px 2px 8px black;
+">
+    🚀 Klikkaa poistuaksesi planeetalta
+</div>
+
+<script type="module">
+
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js';
+
+document.getElementById("inventory").style.display = "none";
+document.getElementById("crafting").style.display = "none";
+document.getElementById("info").style.display = "none";
+
+let inventoryOpen = false;
+//////////////////////////////////////////////////////
+// SCENE
+//////////////////////////////////////////////////////
+
+const scene = new THREE.Scene();
+
+scene.fog = new THREE.Fog(
+    0x001e3c,
+    20,
+    500
+);
+
+//////////////////////////////////////////////////////
+// CAMERA
+//////////////////////////////////////////////////////
+
+const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth/window.innerHeight,
+    0.1,
+    5000
+);
+
+//////////////////////////////////////////////////////
+// RENDERER
+//////////////////////////////////////////////////////
+
+const renderer = new THREE.WebGLRenderer({
+    antialias:true
+});
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+renderer.shadowMap.enabled = true;
+
+document.body.appendChild(renderer.domElement);
+
+//////////////////////////////////////////////////////
+// LIGHTS
+//////////////////////////////////////////////////////
+
+const ambient = new THREE.AmbientLight(
+    0x66ccff,
+    0.7
+);
+
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(
+    0xffffff,
+    2
+);
+
+sun.position.set(100,200,100);
+
+scene.add(sun);
+
+//////////////////////////////////////////////////////
+// WATER SURFACE
+//////////////////////////////////////////////////////
+
+const waterSurface = new THREE.Mesh(
+    new THREE.PlaneGeometry(5000,5000),
+    new THREE.MeshStandardMaterial({
+        color:0x3399ff,
+        transparent:true,
+        opacity:0.7,
+        side:THREE.DoubleSide
+    })
+);
+
+waterSurface.rotation.x = -Math.PI/2;
+
+scene.add(waterSurface);
+
+//////////////////////////////////////////////////////
+// SKY
+//////////////////////////////////////////////////////
+
+const sky = new THREE.Mesh(
+    new THREE.SphereGeometry(3000,32,32),
+    new THREE.MeshBasicMaterial({
+        color:0x87ceeb,
+        side:THREE.BackSide
+    })
+);
+
+scene.add(sky);
+
+//////////////////////////////////////////////////////
+// PLAYER
+//////////////////////////////////////////////////////
+
+const player = new THREE.Object3D();
+
+player.position.set(-140, 1, -140);
+
+scene.add(player);
+
+//////////////////////////////////////////////////////
+// FLOOR
+//////////////////////////////////////////////////////
+
+const floorLevel = -18;
+
+const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(5000,5000),
+    new THREE.MeshStandardMaterial({
+        color:0x223322
+    })
+);
+
+floor.rotation.x = -Math.PI/2;
+floor.position.y = floorLevel;
+
+scene.add(floor);
+
+//////////////////////////////////////////////////////
+// BIOMES
+//////////////////////////////////////////////////////
+
+function createBiome(x,z,color,height,count){
+
+    for(let i=0;i<count;i++){
+
+        const coral = new THREE.Mesh(
+
+            new THREE.CylinderGeometry(
+                0.2,
+                1,
+                Math.random()*height+2,
+                6
+            ),
+
+            new THREE.MeshStandardMaterial({
+                color
+            })
+        );
+
+        coral.position.set(
+            x + (Math.random()-0.5)*100,
+            floorLevel,
+            z + (Math.random()-0.5)*100
+        );
+
+        scene.add(coral);
+    }
+}
+
+createBiome(0,0,0xff00ff,10,80);
+createBiome(200,0,0x00ffcc,20,120);
+createBiome(-200,-100,0xff3300,8,100);
+createBiome(200,-100,0x8ef00e,30,150);
+createBiome(-200,100,0x0de0c1,40,130);
+createBiome(200,100,0x9c11ed,60,160);
+
+//////////////////////////////////////////////////////
+// WRECK
+//////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
+// MASSIVE SPACESHIP WRECK (FIXED HITBOX)
+//////////////////////////////////////////////////////
+
+const wreck = new THREE.Group();
+
+////////////////////////////////////////
+// MAIN CORE (THIS IS THE ONLY COLLISION PART)
+////////////////////////////////////////
+
+const wreckBody = new THREE.Mesh(
+
+    new THREE.CylinderGeometry(
+        25,
+        40,
+        220,
+        18
+    ),
+
+    new THREE.MeshStandardMaterial({
+        color:0x666666,
+        metalness:0.9,
+        roughness:0.5
+    })
+);
+
+wreckBody.rotation.z = Math.PI/2;
+
+// IMPORTANT: mark core for collision
+wreckBody.name = "wreckCore";
+
+wreck.add(wreckBody);
+
+////////////////////////////////////////
+// FRONT SECTION (NO COLLISION)
+////////////////////////////////////////
+
+const front = new THREE.Mesh(
+
+    new THREE.ConeGeometry(
+        25,
+        60,
+        18
+    ),
+
+    new THREE.MeshStandardMaterial({
+        color:0x777777,
+        metalness:0.9
+    })
+);
+
+front.rotation.z = -Math.PI/2;
+front.position.x = 140;
+
+wreck.add(front);
+
+////////////////////////////////////////
+// ENGINE SECTION (NO COLLISION)
+////////////////////////////////////////
+
+for(let i=0;i<4;i++){
+
+    const engine = new THREE.Mesh(
+
+        new THREE.CylinderGeometry(
+            8,
+            10,
+            40,
+            12
+        ),
+
+        new THREE.MeshStandardMaterial({
+            color:0x444444,
+            metalness:1
+        })
+    );
+
+    engine.rotation.z = Math.PI/2;
+
+    engine.position.set(
+        -120,
+        -20 + i*12,
+        i%2===0 ? -15 : 15
+    );
+
+    wreck.add(engine);
+}
+
+////////////////////////////////////////
+// DEBRIS (NO COLLISION - PURE VISUAL)
+////////////////////////////////////////
+
+for(let i=0;i<80;i++){
+
+    const debris = new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+            Math.random()*12+2,
+            Math.random()*12+2,
+            Math.random()*12+2
+        ),
+
+        new THREE.MeshStandardMaterial({
+            color:0x555555,
+            metalness:0.8,
+            roughness:0.6
+        })
+    );
+
+    debris.position.set(
+        (Math.random()-0.5)*220,
+        (Math.random()-0.5)*60,
+        (Math.random()-0.5)*80
+    );
+
+    debris.rotation.set(
+        Math.random()*Math.PI,
+        Math.random()*Math.PI,
+        Math.random()*Math.PI
+    );
+
+    wreck.add(debris);
+}
+
+////////////////////////////////////////
+// LIGHTS
+////////////////////////////////////////
+
+for(let i=0;i<10;i++){
+
+    const fireLight = new THREE.PointLight(
+        0xff5500,
+        5,
+        60
+    );
+
+    fireLight.position.set(
+        (Math.random()-0.5)*180,
+        (Math.random()-0.5)*50,
+        (Math.random()-0.5)*50
+    );
+
+    wreck.add(fireLight);
+}
+
+////////////////////////////////////////
+// POSITION (PARTLY ABOVE WATER)
+////////////////////////////////////////
+
+wreck.position.set(
+    -250,
+    15,
+    -250
+);
+
+wreck.rotation.z = -0.2;
+wreck.rotation.y = 0.7;
+
+scene.add(wreck);
+
+////////////////////////////////////////
+// CLEAN HITBOX (ONLY CORE BODY)
+////////////////////////////////////////
+
+const wreckCoreBox = new THREE.Box3();
+
+function updateWreckCollision(){
+
+    wreckCoreBox.setFromObject(wreck);
+
+    // pienennä hitboxia hieman jotta ei tunnu “liian isolta”
+    wreckCoreBox.expandByScalar(-10);
+}
+//////////////////////////////////////////////////////
+// RESOURCES
+//////////////////////////////////////////////////////
+
+const resources = [];
+const foodBalls = [];
+
+let rocket = null;
+let rocketBuilt = false;
+
+function createResource(type,color,x,z){
+
+    const mesh = new THREE.Mesh(
+
+        new THREE.SphereGeometry(1,8,8),
+
+        new THREE.MeshStandardMaterial({
+            color,
+            emissive:color
+        })
+    );
+
+    mesh.position.set(x,-15,z);
+
+    scene.add(mesh);
+
+    resources.push({
+        type,
+        mesh
+    });
+}
+
+for(let i=0;i<40;i++){
+
+    createFoodBall(
+        Math.random()*500-250,
+        Math.random()*500-250
+    );
+}
+
+for(let i=0;i<100;i++){
+
+    createResource(
+        "Titanium",
+        0xaaaaaa,
+        Math.random()*400-200,
+        Math.random()*400-200
+    );
+
+    createResource(
+        "Crystal",
+        0x00ffff,
+        Math.random()*400-200,
+        Math.random()*400-200
+    );
+}
+
+function createFoodBall(x,z){
+
+    const mesh = new THREE.Mesh(
+
+        new THREE.SphereGeometry(1.4,12,12),
+
+        new THREE.MeshStandardMaterial({
+            color:0xffaa00,
+            emissive:0xff6600
+        })
+    );
+
+    mesh.position.set(x,-14,z);
+
+    scene.add(mesh);
+
+    foodBalls.push(mesh);
+}
+
+//////////////////////////////////////////////////////
+// LEVIATHAN
+//////////////////////////////////////////////////////
+
+const leviathan = new THREE.Group();
+
+const bodySegments = [];
+
+for(let i=0;i<12;i++){
+
+    const segment = new THREE.Mesh(
+
+        new THREE.SphereGeometry(
+            4 - i*0.2,
+            16,
+            16
+        ),
+
+        new THREE.MeshStandardMaterial({
+            color:0x550000,
+            emissive:0x220000,
+            roughness:0.7
+        })
+    );
+
+    segment.position.z = i*3;
+
+    leviathan.add(segment);
+
+    bodySegments.push(segment);
+}
+
+const head = new THREE.Mesh(
+
+    new THREE.SphereGeometry(
+        5,
+        20,
+        20
+    ),
+
+    new THREE.MeshStandardMaterial({
+        color:0x770000,
+        emissive:0x330000
+    })
+);
+
+head.scale.set(1.5,1,2);
+
+head.position.z = -2;
+
+leviathan.add(head);
+
+const leftEye = new THREE.Mesh(
+
+    new THREE.SphereGeometry(
+        0.5,
+        8,
+        8
+    ),
+
+    new THREE.MeshBasicMaterial({
+        color:0xff2200
+    })
+);
+
+leftEye.position.set(-2,1,-5);
+
+leviathan.add(leftEye);
+
+const rightEye = leftEye.clone();
+
+rightEye.position.x = 2;
+
+leviathan.add(rightEye);
+
+const tail = new THREE.Mesh(
+
+    new THREE.ConeGeometry(
+        1,
+        8,
+        8
+    ),
+
+    new THREE.MeshStandardMaterial({
+        color:0x330000
+    })
+);
+
+tail.rotation.x = Math.PI/2;
+
+tail.position.z = 38;
+
+leviathan.add(tail);
+
+leviathan.position.set(
+    450,
+    0,
+    -450
+);
+
+scene.add(leviathan);
+
+//////////////////////////////////////////////////////
+// INVENTORY
+//////////////////////////////////////////////////////
+
+const inventory = {
+    Titanium:0,
+    Crystal:0
+};
+
+function updateInventory(){
+
+    document.getElementById("items").innerHTML = `
+        Titaani: ${inventory.Titanium}<br>
+        Kristalli: ${inventory.Crystal}
+    `;
+}
+
+//////////////////////////////////////////////////////
+// PLAYER STATS
+//////////////////////////////////////////////////////
+
+let health = 100;
+let oxygen = 30;
+let oxygenMax = 30;
+let hunger = 100;
+
+//////////////////////////////////////////////////////
+// CRAFTING
+//////////////////////////////////////////////////////
+
+function craftTank(){
+
+    if(inventory.Crystal >= 5){
+
+        inventory.Crystal -= 5;
+
+        oxygenMax += 10;
+
+        updateInventory();
+    }
+}
+
+window.craftTank = craftTank;
+
+function craftRocket(){
+
+    if(rocketBuilt) return;
+
+    if(
+        inventory.Titanium >= 15 &&
+        inventory.Crystal >= 5
+    ){
+
+        inventory.Titanium -= 15;
+        inventory.Crystal -= 5;
+
+        updateInventory();
+
+        rocketBuilt = true;
+
+        rocket = new THREE.Group();
+
+        const body = new THREE.Mesh(
+
+            new THREE.CylinderGeometry(
+                2,
+                2,
+                12,
+                16
+            ),
+
+            new THREE.MeshStandardMaterial({
+                color:0xffffff
+            })
+        );
+
+        body.position.y = 6;
+
+        rocket.add(body);
+
+        const nose = new THREE.Mesh(
+
+            new THREE.ConeGeometry(
+                2,
+                4,
+                16
+            ),
+
+            new THREE.MeshStandardMaterial({
+                color:0xff3333
+            })
+        );
+
+        nose.position.y = 14;
+
+        rocket.add(nose);
+
+        rocket.position.set(
+            player.position.x,
+            2,
+            player.position.z
+        );
+
+        scene.add(rocket);
+    }
+}
+
+window.craftRocket = craftRocket;
+
+//////////////////////////////////////////////////////
+// INPUT
+//////////////////////////////////////////////////////
+
+addEventListener("keydown",(e)=>{
+
+    if(e.key.toLowerCase() === "e"){
+
+        inventoryOpen = !inventoryOpen;
+
+        document.getElementById("inventory").style.display =
+            inventoryOpen ? "block" : "none";
+
+        document.getElementById("crafting").style.display =
+            inventoryOpen ? "block" : "none";
+			
+		document.getElementById("info").style.display =
+            inventoryOpen ? "block" : "none";
+    }
+	document.addEventListener(
+    "click",
+    ()=>{
+
+        if(!rocketBuilt || !rocket)
+            return;
+
+        const dist =
+            player.position.distanceTo(
+                rocket.position
+            );
+
+        if(dist > 15)
+            return;
+
+        const direction =
+            new THREE.Vector3();
+
+        camera.getWorldDirection(direction);
+
+        const rocketDir =
+            rocket.position.clone()
+            .sub(camera.position)
+            .normalize();
+
+        const dot =
+            direction.dot(rocketDir);
+
+        if(dot > 0.98){
+
+            document.exitPointerLock();
+
+            document.getElementById(
+                "winScreen"
+            ).style.display = "flex";
+        }
+    }
+);
+});
+
+const keys = {};
+
+document.addEventListener(
+    "keydown",
+    e=>{
+        keys[e.key.toLowerCase()] = true;
+    }
+);
+
+document.addEventListener(
+    "keyup",
+    e=>{
+        keys[e.key.toLowerCase()] = false;
+    }
+);
+
+//////////////////////////////////////////////////////
+// FPS CAMERA
+//////////////////////////////////////////////////////
+
+let yaw = 0;
+let pitch = 0;
+
+document.addEventListener(
+    "mousemove",
+    (e)=>{
+
+        if(document.pointerLockElement){
+
+            yaw -= e.movementX * 0.002;
+            pitch -= e.movementY * 0.002;
+
+            pitch = Math.max(
+                -Math.PI/2,
+                Math.min(Math.PI/2,pitch)
+            );
+        }
+    }
+);
+
+document.body.addEventListener(
+    "click",
+    ()=>{
+        document.body.requestPointerLock();
+    }
+);
+
+//////////////////////////////////////////////////////
+// MOVEMENT
+//////////////////////////////////////////////////////
+
+const moveSpeed = 0.50;
+
+function movePlayer(){
+
+    const previousPosition =
+        player.position.clone();
+
+    const forward = new THREE.Vector3(
+        Math.sin(yaw),
+        0,
+        Math.cos(yaw)
+    );
+
+    const right = new THREE.Vector3(
+        Math.cos(yaw),
+        0,
+        -Math.sin(yaw)
+    );
+
+    if(keys["w"])
+        player.position.add(
+            forward.clone()
+            .multiplyScalar(-moveSpeed)
+        );
+
+    if(keys["s"])
+        player.position.add(
+            forward.clone()
+            .multiplyScalar(moveSpeed)
+        );
+
+    if(keys["a"])
+        player.position.add(
+            right.clone()
+            .multiplyScalar(-moveSpeed)
+        );
+
+    if(keys["d"])
+        player.position.add(
+            right.clone()
+            .multiplyScalar(moveSpeed)
+        );
+
+    if(keys[" "])
+        player.position.y += moveSpeed;
+
+    if(keys["shift"])
+        player.position.y -= moveSpeed;
+
+    //////////////////////////////////////////
+    // WATER SURFACE LIMIT
+    //////////////////////////////////////////
+
+    if(player.position.y > 0){
+
+        player.position.y = 0;
+    }
+
+    //////////////////////////////////////////
+    // FLOOR COLLISION
+    //////////////////////////////////////////
+
+    if(player.position.y < floorLevel){
+    player.position.y = floorLevel;
+}
+
+    //////////////////////////////////////////
+    // WRECK COLLISION
+    //////////////////////////////////////////
+
+    updateWreckCollision();
+
+    const playerBox = new THREE.Box3(
+
+        new THREE.Vector3(
+            player.position.x - 0.5,
+            player.position.y - 1,
+            player.position.z - 0.5
+        ),
+
+        new THREE.Vector3(
+            player.position.x + 0.5,
+            player.position.y + 1,
+            player.position.z + 0.5
+        )
+    );
+
+    if(playerBox.intersectsBox(wreckCoreBox)){
+
+        player.position.copy(
+            previousPosition
+        );
+    }
+}
+
+//////////////////////////////////////////////////////
+// GAME LOOP
+//////////////////////////////////////////////////////
+
+function animate(){
+if(inventoryOpen){
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+    return;
+}
+
+    requestAnimationFrame(animate);
+
+    movePlayer();
+
+    //////////////////////////////////////////
+    // WATER WAVES
+    //////////////////////////////////////////
+
+    waterSurface.position.y =
+        Math.sin(Date.now()*0.001)*0.3;
+
+    //////////////////////////////////////////
+    // CAMERA
+    //////////////////////////////////////////
+
+    camera.position.copy(
+        player.position.clone().add(
+            new THREE.Vector3(0,2,0)
+        )
+    );
+
+    camera.rotation.order = "YXZ";
+
+    camera.rotation.y = yaw;
+    camera.rotation.x = pitch;
+	
+	    //////////////////////////////////////////
+    // ROCKET LOOK DETECTION
+    //////////////////////////////////////////
+
+    let lookingAtRocket = false;
+
+    if(rocketBuilt && rocket){
+
+        rocket.position.y =
+            2 + Math.sin(Date.now()*0.002)*0.3;
+
+        const dist =
+            player.position.distanceTo(
+                rocket.position
+            );
+
+        if(dist < 15){
+
+            const direction =
+                new THREE.Vector3();
+
+            camera.getWorldDirection(direction);
+
+            const rocketDir =
+                rocket.position.clone()
+                .sub(camera.position)
+                .normalize();
+
+            const dot =
+                direction.dot(rocketDir);
+
+            if(dot > 0.98){
+
+                lookingAtRocket = true;
+            }
+        }
+    }
+
+    document.getElementById(
+        "rocketText"
+    ).style.display =
+        lookingAtRocket
+        ? "block"
+        : "none";
+
+    //////////////////////////////////////////
+    // RESOURCE COLLECTION
+    //////////////////////////////////////////
+
+    resources.forEach((r,index)=>{
+
+        if(
+            player.position.distanceTo(
+                r.mesh.position
+            ) < 3
+        ){
+
+            inventory[r.type]++;
+
+            scene.remove(r.mesh);
+
+            resources.splice(index,1);
+
+            updateInventory();
+        }
+    });
+	
+	    //////////////////////////////////////////
+    // FOOD BALL COLLECTION
+    //////////////////////////////////////////
+
+    foodBalls.forEach((food,index)=>{
+
+        if(
+            player.position.distanceTo(
+                food.position
+            ) < 3
+        ){
+
+            hunger += 10;
+
+            hunger = Math.min(
+                hunger,
+                150
+            );
+
+            scene.remove(food);
+
+            foodBalls.splice(index,1);
+        }
+    });
+
+    //////////////////////////////////////////
+    // LEVIATHAN AI
+    //////////////////////////////////////////
+
+    const time = Date.now()*0.002;
+
+    bodySegments.forEach((segment,index)=>{
+
+        segment.position.x =
+            Math.sin(time + index*0.5)
+            * 1.5;
+    });
+
+    leviathan.lookAt(player.position);
+
+    const dir = new THREE.Vector3()
+
+        .subVectors(
+            player.position,
+            leviathan.position
+        )
+
+        .normalize();
+
+    leviathan.position.add(
+        dir.multiplyScalar(0.08)
+    );
+
+    leviathan.position.y +=
+        Math.sin(time)*0.03;
+
+    //////////////////////////////////////////
+    // LEVIATHAN COLLISION
+    //////////////////////////////////////////
+
+    const leviathanBox =
+        new THREE.Box3()
+        .setFromObject(leviathan);
+
+    if(leviathanBox.intersectsBox(wreckCoreBox))
+    {
+
+        leviathan.position.x +=
+            (Math.random()-0.5)*2;
+
+        leviathan.position.z +=
+            (Math.random()-0.5)*2;
+    }
+
+    //////////////////////////////////////////
+    // DAMAGE
+    //////////////////////////////////////////
+
+    if(
+        player.position.distanceTo(
+            leviathan.position
+        ) < 10
+    ){
+
+        health -= 0.3;
+    }
+
+    //////////////////////////////////////////
+    // SURVIVAL
+    //////////////////////////////////////////
+
+    if(player.position.y < 0){
+
+        scene.fog.color.set(
+            0x001e3c
+        );
+
+        oxygen -= 0.02;
+
+    }else{
+
+        scene.fog.color.set(
+            0x87ceeb
+        );
+
+        oxygen += 0.5;
+    }
+
+    oxygen = Math.min(
+        oxygen,
+        oxygenMax
+    );
+
+    hunger -= 0.005;
+
+    if(oxygen <= 0)
+        health -= 0.1;
+
+    if(hunger <= 0)
+        health -= 0.05;
+
+    //////////////////////////////////////////
+    // HUD
+    //////////////////////////////////////////
+
+    document.getElementById(
+        "health"
+    ).innerText =
+        Math.max(0,
+        health.toFixed(0));
+
+    document.getElementById(
+        "oxygen"
+    ).innerText =
+        Math.max(0,
+        oxygen.toFixed(0));
+
+    document.getElementById(
+        "hunger"
+    ).innerText =
+        Math.max(0,
+        hunger.toFixed(0));
+
+    document.getElementById(
+        "depth"
+    ).innerText =
+        Math.abs(
+            player.position.y.toFixed(0)
+        );
+
+    //////////////////////////////////////////
+    // GAME OVER
+    //////////////////////////////////////////
+if(health <= 0){
+
+    health = 0;
+
+    document.exitPointerLock();
+
+    document.getElementById(
+        "gameOverScreen"
+    ).style.display = "flex";
+
+    renderer.render(scene, camera);
+
+    return;
+}
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+//////////////////////////////////////////////////////
+// RESTART BUTTON
+//////////////////////////////////////////////////////
+
+document.getElementById(
+    "restartBtn"
+).addEventListener("click",()=>{
+
+    location.reload();
+});
+
+animate();
+
+//////////////////////////////////////////////////////
+// RESIZE
+//////////////////////////////////////////////////////
+
+window.addEventListener(
+    "resize",
+    ()=>{
+
+        camera.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+    }
+);
+
+updateInventory();
+
+</script>
+
+</body>
+</html>
